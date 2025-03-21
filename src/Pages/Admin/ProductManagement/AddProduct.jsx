@@ -86,8 +86,6 @@ const AddProduct = ({ onAddSuccess, brands: externalBrands, categories: external
     fetchCategories();
   }, [toast]);
   
-  // Kiểm tra state brands sau khi cập nhật
-  console.log("Current Brands State:", brands);
 
   const handleProductInputChange = (e) => {
     const { name, value } = e.target;
@@ -163,19 +161,19 @@ const AddProduct = ({ onAddSuccess, brands: externalBrands, categories: external
     try {
       const formData = new FormData();
       formData.append("product", JSON.stringify(productFormData));
-
+  
       const response = await axiosInstance.post("/api/products", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-
+  
       const createdProduct = response.data;
       setProductId(createdProduct.id);
       setActiveStep(1);
-    } catch (error) {
-      console.error("Error creating product:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Unknown error";
+    } catch (error) {  
+      const errorMessage =error.customMessage ||"Lỗi không xác định";
+  
       toast({
-        title: "Vui lòng nhập thông tin sản phẩm",
+        title: "Đã có lỗi xảy ra",
         description: errorMessage,
         status: "error",
         duration: 3000,

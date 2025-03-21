@@ -31,7 +31,6 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
   });
   const toast = useToast();
 
-  // Cập nhật state khi mở Modal với dữ liệu của product
   useEffect(() => {
     if (product) {
       setEditedProduct({
@@ -46,7 +45,6 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
     }
   }, [product]);
 
-  // Xử lý thay đổi input cho sản phẩm
   const handleProductInputChange = (e) => {
     const { name, value } = e.target;
     setEditedProduct((prev) => {
@@ -71,11 +69,24 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("handleSubmit called");
+
+    if (!product || !product.id) {
+      toast({
+        title: "Lỗi",
+        description: "Không tìm thấy ID sản phẩm để cập nhật.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "top-right",
+      });
+      return;
+    }
 
     const productData = {
       code: editedProduct.code,
-      brandId: parseInt(editedProduct.brandId, 10) || null, // Chuyển brandId từ string sang number
-      categoryId: parseInt(editedProduct.categoryId, 10) || null, // Chuyển categoryId từ string sang number
+      brandId: parseInt(editedProduct.brandId, 10) || null,
+      categoryId: parseInt(editedProduct.categoryId, 10) || null,
       name: editedProduct.name,
       price: parseFloat(editedProduct.price) || 0,
       discountRate: parseFloat(editedProduct.discountRate) || 0,
@@ -85,13 +96,14 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
     console.log("Product data to send:", productData);
 
     try {
-      // Tạo FormData cho sản phẩm chính
       const formData = new FormData();
       formData.append("product", JSON.stringify(productData));
-
-      // Cập nhật thông tin sản phẩm chính
-      const response = await axiosInstance.put(`/api/products/${product.id}`, formData);
-
+      const response = await axiosInstance.put(`/api/products/${product.id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    
       toast({
         title: "Thành công",
         description: "Đã cập nhật thông tin sản phẩm.",
@@ -103,14 +115,15 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
       onEditSuccess(response.data);
       onClose();
     } catch (error) {
-      console.error("Error updating product:", error.response?.data || error.message);
-      const errorMessage = error.response?.data?.message || error.message || "Không thể cập nhật sản phẩm.";
+      const errorMessage =error.customMessage ||"Lỗi không xác định";
+
       toast({
-        title: "Lỗi",
+        title: "Đã có lỗi xảy ra",
         description: errorMessage,
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right",
       });
     }
   };
@@ -330,29 +343,28 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
                 />
               </FormControl>
             </Stack>
+            <ModalFooter>
+              <Button onClick={onClose} variant="ghost">
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                ml={3}
+                variant="solid"
+                bg="var(--primary-color)"
+                color="var(--text-color)"
+                _hover={{ bg: "var(--hover-color)" }}
+                _dark={{
+                  bg: "gray.700",
+                  color: "white",
+                  _hover: { bg: "gray.600" },
+                }}
+              >
+                Lưu
+              </Button>
+            </ModalFooter>
           </form>
         </ModalBody>
-        <ModalFooter>
-          <Button onClick={onClose} variant="ghost">
-            Hủy
-          </Button>
-          <Button
-            type="submit"
-            onClick={handleSubmit}
-            ml={3}
-            variant="solid"
-            bg="var(--primary-color)"
-            color="var(--text-color)"
-            _hover={{ bg: "var(--hover-color)" }}
-            _dark={{
-              bg: "gray.700",
-              color: "white",
-              _hover: { bg: "gray.600" },
-            }}
-          >
-            Lưu
-          </Button>
-        </ModalFooter>
       </ModalContent>
     </Modal>
   );

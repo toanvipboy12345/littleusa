@@ -197,10 +197,10 @@ const ProductManagement = () => {
           setCurrentPage(currentPage - 1);
         }
       } catch (error) {
-        console.error("Không thể xoá sản phẩm:", error);
+        const errorMessage =error.customMessage ||"Lỗi không xác định";
         toast({
           title: "Lỗi",
-          description: "Không thể xóa sản phẩm.",
+          description: errorMessage,
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -258,8 +258,6 @@ const ProductManagement = () => {
       }
     }
 
-    console.log("Opening EditVariant with variant:", variant);
-
     setVariantToEdit({
       ...variant,
       productId: Number(productId),
@@ -269,7 +267,6 @@ const ProductManagement = () => {
 
   const handleAddVariantOpen = (productId) => {
     if (!productId || isNaN(productId)) {
-      console.error("Invalid productId:", productId);
       toast({
         title: "Lỗi",
         description: "Không thể thêm biến thể do ID sản phẩm không hợp lệ.",

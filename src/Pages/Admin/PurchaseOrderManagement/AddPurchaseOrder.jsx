@@ -196,7 +196,7 @@ const AddPurchaseOrder = () => {
         });
         return;
       }
-
+  
       if (parseFloat(purchaseOrderData.importPrice) <= 0) {
         toast({
           title: "Lỗi",
@@ -208,7 +208,7 @@ const AddPurchaseOrder = () => {
         });
         return;
       }
-
+  
       const validItems = items
         .filter((item) => {
           const variant = variants.find((v) =>
@@ -224,7 +224,7 @@ const AddPurchaseOrder = () => {
           variantSizeId: item.variantSizeId,
           quantity: parseInt(item.quantity),
         }));
-
+  
       if (validItems.length === 0) {
         toast({
           title: "Lỗi",
@@ -236,7 +236,7 @@ const AddPurchaseOrder = () => {
         });
         return;
       }
-
+  
       const formData = {
         purchaseOrderCode: purchaseOrderData.purchaseOrderCode,
         supplier: { id: purchaseOrderData.supplierId },
@@ -245,11 +245,11 @@ const AddPurchaseOrder = () => {
         items: validItems,
         totalAmount: calculateTotalAmount(),
       };
-
+  
       const response = await axiosInstance.post("/api/purchase-orders", formData, {
         headers: { "Content-Type": "application/json" },
       });
-
+  
       toast({
         title: "Thêm phiếu nhập hàng thành công",
         description: "Phiếu nhập hàng đã được tạo với trạng thái PENDING!",
@@ -258,7 +258,7 @@ const AddPurchaseOrder = () => {
         isClosable: true,
         position: "top-right",
       });
-
+  
       // Reset form
       setPurchaseOrderData({
         purchaseOrderCode: "",
@@ -271,12 +271,20 @@ const AddPurchaseOrder = () => {
       setVariants([]);
       setSelectedVariants([]);
     } catch (error) {
-      console.error("Error creating purchase order:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Unknown error";
+      let errorMessage;
+  
+      // Kiểm tra nếu lỗi là 403 Forbidden
+      if (error.response && error.response.status === 403) {
+        errorMessage = "Bạn không có quyền thực hiện hành động này";
+      } else {
+        // Nếu không phải lỗi 403, lấy thông báo lỗi từ response hoặc error.message
+        errorMessage = error.response?.data?.message || error.message || "Unknown error";
+      }
+  
       toast({
         title: "Lỗi khi thêm phiếu nhập hàng",
         description: errorMessage,
-        status: "error",
+        status: error,
         duration: 3000,
         isClosable: true,
         position: "top-right",

@@ -28,10 +28,11 @@ import {
   RangeSliderFilledTrack,
   RangeSliderThumb,
 } from "@chakra-ui/react";
-import { ChevronDown, AlertCircle } from "react-feather";
+import { ChevronDown, AlertCircle, Grid, List } from "react-feather";
 import axiosInstance from "../../../../Api/axiosInstance";
-import {Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import useDocumentTitle from "../../../../hook/useDocumentTitle";
+
 const Product = () => {
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(0);
@@ -48,8 +49,9 @@ const Product = () => {
   const [categories, setCategories] = useState([]);
   const [appliedFilters, setAppliedFilters] = useState([]);
   const [size] = useState(30);
-  useDocumentTitle("Danh sách sản phâm");
-  // const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState("card");
+
+  useDocumentTitle("Danh sách sản phẩm");
   const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
 
@@ -120,6 +122,7 @@ const Product = () => {
         },
       });
       setProducts(response.data.products);
+      console.log(response.data.products);
       const totalCards = response.data.total;
       setTotalPages(Math.ceil(totalCards / size) || 1);
 
@@ -368,6 +371,34 @@ const Product = () => {
         </Box>
 
         <Box w={{ base: "100%", md: "75%" }}>
+          {/* Thêm nút chọn kiểu hiển thị */}
+          <Flex justify="flex-end" mb={4}>
+            <HStack spacing={2}>
+              <Button
+                variant={viewMode === "card" ? "solid" : "outline"}
+                onClick={() => setViewMode("card")}
+                p={0} // Loại bỏ padding để icon căn giữa
+
+                display="flex" // Đảm bảo flex để căn giữa icon
+                alignItems="center"
+                justifyContent="center"
+              >
+                <Grid size={20} />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "solid" : "outline"}
+                onClick={() => setViewMode("list")}
+                p={0} // Loại bỏ padding để icon căn giữa
+
+                display="flex" // Đảm bảo flex để căn giữa icon
+                alignItems="center"
+                justifyContent="center"
+              >
+                <List size={20} />
+              </Button>
+            </HStack>
+          </Flex>
+
           {loading ? (
             <Flex justify="center" align="center" minH="500px">
               <Spinner thickness="2px" speed="0.65s" emptyColor="gray.200" color="black" size="lg" />
@@ -377,19 +408,19 @@ const Product = () => {
               <Box as={AlertCircle} size={48} color="gray.500" />
               <Text fontSize="lg" color="gray.600">Không có sản phẩm nào để hiển thị.</Text>
             </Flex>
-          ) : (
-            <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 5 }} spacing={6}>
-
+          ) : viewMode === "card" ? (
+            // Hiển thị dạng Card (giữ nguyên như cũ)
+            // Hiển thị dạng Card
+            // Hiển thị dạng Card
+            <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} spacing={{ base: 4, md: 6 }}>
               {products.map((product) => {
-                // Kiểm tra nếu product, product.name, và product.color tồn tại
                 const name = product?.name ? product.name.toLowerCase().replace(/\s+/g, "-") : "unknown-product";
                 const color = product?.color ? product.color.toLowerCase().replace(/\s+/g, "-") : "unknown-color";
-                // Tạo slug từ tên sản phẩm và màu sắc
                 const slug = `${name}-${color}`;
                 return (
                   <Link
                     key={product.variantId}
-                    to={`/products/${product.productId}/${slug}`} // Sử dụng slug thay vì query params
+                    to={`/products/${product.productId}/${slug}`}
                     style={{ textDecoration: "none" }}
                   >
                     <Box
@@ -401,14 +432,14 @@ const Product = () => {
                       <Image
                         src={`${imageBaseUrl}${product.mainImage}`}
                         alt={product.name || "Product"}
-                        h="auto"
+                        h={{ base: "150px", md: "200px" }} // Đặt chiều cao cố định, nhưng không giới hạn maxH
                         w="100%"
-                        objectFit="cover"
+                        objectFit="contain" // Đảm bảo ảnh hiển thị đầy đủ, không bị cắt
                         fallbackSrc="https://via.placeholder.com/200"
                       />
-                      <Box p={4} position="relative">
+                      <Box p={{ base: 4, md: 4 }} position="relative">
                         <Heading
-                          size="sm"
+                          size={{ base: "xs", md: "sm" }} // Giảm kích thước tiêu đề trên mobile
                           color="gray.800"
                           noOfLines={2}
                           textOverflow="ellipsis"
@@ -417,7 +448,69 @@ const Product = () => {
                         >
                           {product.name || "Unnamed Product"}
                         </Heading>
-                        <HStack mt={2} spacing={2}>
+                        <HStack mt={{ base: 1, md: 2 }} spacing={2}>
+                          {product.discountRate === 0 ? (
+                            <Text color="gray.800" fontWeight="bold" fontSize={{ base: "sm", md: "md" }}>
+                              {product.price?.toLocaleString("vi-VN") || "0"} đ
+                            </Text>
+                          ) : (
+                            <>
+                              <Text fontWeight="bold" fontSize={{ base: "sm", md: "md" }}>
+                                {product.discountPrice?.toLocaleString("vi-VN") || "0"} đ
+                              </Text>
+                              <Text color="gray.500" textDecoration="line-through" fontSize={{ base: "sm", md: "md" }}>
+                                {product.price?.toLocaleString("vi-VN") || "0"} đ
+                              </Text>
+                            </>
+                          )}
+                        </HStack>
+                      </Box>
+                    </Box>
+                  </Link>
+                );
+              })}
+            </SimpleGrid>
+          ) : (
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              {products.map((product) => {
+                const name = product?.name ? product.name.toLowerCase().replace(/\s+/g, "-") : "unknown-product";
+                const color = product?.color ? product.color.toLowerCase().replace(/\s+/g, "-") : "unknown-color";
+                const slug = `${name}-${color}`;
+                return (
+                  <Link
+                    key={product.variantId}
+                    to={`/products/${product.productId}/${slug}`}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <Flex
+                      p={{ base: 2, md: 4 }} // Giảm padding trên mobile
+                      transition="transform 0.2s ease"
+                      _hover={{ transform: "scale(1.02)", bg: "gray.100" }}
+                      align="start"
+                      minH={{ base: "120px", md: "150px" }} // Giảm chiều cao tối thiểu trên mobile
+                    >
+                      <Image
+                        src={`${imageBaseUrl}${product.mainImage}`}
+                        alt={product.name || "Product"}
+                        boxSize={{ base: "100px", md: "150px" }} // Giảm kích thước ảnh trên mobile
+                        objectFit="cover"
+                        mr={{ base: 2, md: 4 }} // Giảm khoảng cách bên phải trên mobile
+                        fallbackSrc="https://via.placeholder.com/100"
+                      />
+                      <VStack align="start" flex="1" spacing={2}>
+                        <Heading
+                          size={{ base: "sm", md: "md" }} // Giảm kích thước tiêu đề trên mobile
+                          color="gray.800"
+                          noOfLines={2} // Giới hạn tối đa 2 dòng
+                          textOverflow="ellipsis"
+                          whiteSpace="normal" // Cho phép xuống dòng
+                          overflow="hidden"
+                          w="100%" // Đảm bảo chiều rộng cố định
+                        >
+                          {product.name || "Unnamed Product"}
+                        </Heading>
+                        <HStack spacing={2}>
                           {product.discountRate === 0 ? (
                             <Text color="gray.800" fontWeight="bold">
                               {product.price?.toLocaleString("vi-VN") || "0"} đ
@@ -433,8 +526,8 @@ const Product = () => {
                             </>
                           )}
                         </HStack>
-                      </Box>
-                    </Box>
+                      </VStack>
+                    </Flex>
                   </Link>
                 );
               })}

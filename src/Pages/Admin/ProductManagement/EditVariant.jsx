@@ -217,8 +217,8 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
       onEditSuccess(response.data);
       onClose();
     } catch (error) {
-      console.error("Error editing variant:", error.response?.data || error.message);
-      const errorMessage = error.response?.data?.message || error.message || "Không thể cập nhật/thêm biến thể.";
+      const errorMessage =error.customMessage ||"Lỗi không xác định";
+
       toast({
         title: "Lỗi",
         description: errorMessage,
@@ -256,7 +256,9 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
       onClose();
     } catch (error) {
       console.error("Error deleting variant:", error.response?.data || error.message);
-      const errorMessage = error.response?.data?.message || error.message || "Không thể xóa biến thể.";
+      const errorMessage = error.response?.data?.message || error.message || "Unknown error";
+
+    
       toast({
         title: "Lỗi",
         description: errorMessage,

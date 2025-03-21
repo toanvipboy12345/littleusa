@@ -10,6 +10,7 @@ import OrderManagement from "./OrderManagement/OrderManagement";
 import PurchaseOrderManagement from "../Admin/PurchaseOrderManagement/PurchaseOrderManagement";
 import AddPurchaseOrder from "../Admin/PurchaseOrderManagement/AddPurchaseOrder";
 import SupplierManagement from "../Admin/SupplierManagement/SupplierManagement"; // Import SupplierManagement
+import UserManagement from "../Admin/UserManagement/UserManagement"; // Import UserManagement
 import {
   Box,
   Flex,
@@ -97,7 +98,7 @@ const Admin = () => {
       case "users":
         return (
           <Box>
-            <Text>Users Document</Text>
+            <UserManagement />
           </Box>
         );
       case "orders":
