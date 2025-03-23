@@ -305,10 +305,10 @@ const Statistics = () => {
 
   // Dữ liệu cho biểu đồ cột (Tổng số tiền giao dịch với nhà cung cấp)
   const supplierTransactionChartData = {
-    labels: supplierTransactionData.map((item) => item.supplierName),
+    labels: supplierTransactionData.map((item) => item.supplierName), // Trục x hiển thị tên nhà cung cấp
     datasets: [
       {
-        label: "Tổng số tiền (VNĐ)",
+        label: "", // Bỏ label để không hiển thị legend
         data: supplierTransactionData.map((item) => item.totalTransactionAmount),
         backgroundColor: [
           "rgba(255, 99, 132, 0.6)", // Màu đỏ
@@ -334,7 +334,7 @@ const Statistics = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: "top",
+        display: false, // Ẩn legend vì không cần thiết
       },
       tooltip: {
         callbacks: {
@@ -412,9 +412,6 @@ const Statistics = () => {
                 boxShadow="sm"
                 w="100%"
               >
-                <Text fontSize="xl" fontWeight="bold" mb={4}>
-                  Doanh thu theo thời gian
-                </Text>
                 {loading ? (
                   <Spinner size="lg" />
                 ) : timeLabels.length > 0 ? (
@@ -443,9 +440,6 @@ const Statistics = () => {
                 boxShadow="sm"
                 w="100%"
               >
-                <Text fontSize="xl" fontWeight="bold" mb={4}>
-                  Doanh thu theo thương hiệu
-                </Text>
                 {loading ? (
                   <Spinner size="lg" />
                 ) : brandRevenueData.length > 0 ? (
@@ -475,9 +469,6 @@ const Statistics = () => {
                 boxShadow="sm"
                 w="100%"
               >
-                <Text fontSize="xl" fontWeight="bold" mb={4}>
-                  Doanh thu theo phương thức thanh toán
-                </Text>
                 {loading ? (
                   <Spinner size="lg" />
                 ) : paymentMethodRevenueData.length > 0 ? (
@@ -507,9 +498,6 @@ const Statistics = () => {
                 boxShadow="sm"
                 w="100%"
               >
-                <Text fontSize="xl" fontWeight="bold" mb={4}>
-                  Tổng số tiền giao dịch với nhà cung cấp
-                </Text>
                 {loading ? (
                   <Spinner size="lg" />
                 ) : supplierTransactionData.length > 0 ? (

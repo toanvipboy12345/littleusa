@@ -1,3 +1,4 @@
+// src/components/Admin/AddPurchaseOrder/AddPurchaseOrder.js
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -196,7 +197,7 @@ const AddPurchaseOrder = () => {
         });
         return;
       }
-  
+
       if (parseFloat(purchaseOrderData.importPrice) <= 0) {
         toast({
           title: "Lỗi",
@@ -208,7 +209,7 @@ const AddPurchaseOrder = () => {
         });
         return;
       }
-  
+
       const validItems = items
         .filter((item) => {
           const variant = variants.find((v) =>
@@ -224,7 +225,7 @@ const AddPurchaseOrder = () => {
           variantSizeId: item.variantSizeId,
           quantity: parseInt(item.quantity),
         }));
-  
+
       if (validItems.length === 0) {
         toast({
           title: "Lỗi",
@@ -236,7 +237,7 @@ const AddPurchaseOrder = () => {
         });
         return;
       }
-  
+
       const formData = {
         purchaseOrderCode: purchaseOrderData.purchaseOrderCode,
         supplier: { id: purchaseOrderData.supplierId },
@@ -245,11 +246,11 @@ const AddPurchaseOrder = () => {
         items: validItems,
         totalAmount: calculateTotalAmount(),
       };
-  
+
       const response = await axiosInstance.post("/api/purchase-orders", formData, {
         headers: { "Content-Type": "application/json" },
       });
-  
+
       toast({
         title: "Thêm phiếu nhập hàng thành công",
         description: "Phiếu nhập hàng đã được tạo với trạng thái PENDING!",
@@ -258,7 +259,7 @@ const AddPurchaseOrder = () => {
         isClosable: true,
         position: "top-right",
       });
-  
+
       // Reset form
       setPurchaseOrderData({
         purchaseOrderCode: "",
@@ -271,20 +272,13 @@ const AddPurchaseOrder = () => {
       setVariants([]);
       setSelectedVariants([]);
     } catch (error) {
-      let errorMessage;
-  
-      // Kiểm tra nếu lỗi là 403 Forbidden
-      if (error.response && error.response.status === 403) {
-        errorMessage = "Bạn không có quyền thực hiện hành động này";
-      } else {
-        // Nếu không phải lỗi 403, lấy thông báo lỗi từ response hoặc error.message
-        errorMessage = error.response?.data?.message || error.message || "Unknown error";
-      }
-  
+      // Sử dụng error.customMessage nếu có (được thêm bởi interceptor khi lỗi 403)
+      const errorMessage = error.customMessage || error.response?.data?.message || error.message || "Lỗi không xác định";
+
       toast({
         title: "Lỗi khi thêm phiếu nhập hàng",
         description: errorMessage,
-        status: error,
+        status: "error", // Sửa từ "status: error" thành "status: 'error'"
         duration: 3000,
         isClosable: true,
         position: "top-right",
@@ -440,7 +434,7 @@ const AddPurchaseOrder = () => {
                   <Checkbox
                     isChecked={selectedVariants.includes(variant.id)}
                     onChange={() => handleVariantSelection(variant.id)}
-                          >
+                  >
                     <Text fontSize={{ base: "sm", md: "md" }} fontWeight="semibold">
                       Màu: {variant.color}
                     </Text>

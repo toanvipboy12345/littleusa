@@ -604,6 +604,7 @@ import SupplierManagement from "../Admin/SupplierManagement/SupplierManagement";
 import UserManagement from "../Admin/UserManagement/UserManagement";
 import Dashboard from "../Admin/stats/Dashboard";
 import Statistics from "../Admin/Stats/Statistics";
+import Notifications from "../Admin/NotificationsManagement/Notifications";
 import {
   Box,
   Flex,
@@ -666,14 +667,6 @@ const Admin = () => {
     document.title = titles[activeMenu] || "Admin - Dashboard";
   }, [activeMenu]);
 
-  // Kiểm tra user trong session mỗi khi activeMenu thay đổi
-  useEffect(() => {
-    if (user) {
-      console.log("Đang trong session:", user);
-    } else {
-      console.log("Không có user trong session");
-    }
-  }, [activeMenu, user]);
 
   useEffect(() => {
     if (!user || user.role !== "admin") {
@@ -718,7 +711,7 @@ const Admin = () => {
       case "notifications":
         return (
           <Box>
-            <Text>Notifications Document</Text>
+            <Notifications />
           </Box>
         );
       case "brands":

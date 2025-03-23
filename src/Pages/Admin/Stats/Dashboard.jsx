@@ -189,18 +189,6 @@ const Dashboard = () => {
           </Stat>
         </Box>
 
-
-        {/* Tổng số thương hiệu */}
-
-
-        {/* Tổng số nhà cung cấp */}
-
-
-        {/* Tổng số phương thức vận chuyển */}
-
-
-        {/* Tổng số mã giảm giá */}
-
       </SimpleGrid>
     </Box>
   );
