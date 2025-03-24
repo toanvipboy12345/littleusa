@@ -415,8 +415,7 @@ const Product = () => {
             <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} spacing={{ base: 4, md: 6 }}>
               {products.map((product) => {
                 const name = product?.name ? product.name.toLowerCase().replace(/\s+/g, "-") : "unknown-product";
-                const color = product?.color ? product.color.toLowerCase().replace(/\s+/g, "-") : "unknown-color";
-                const slug = `${name}-${color}`;
+                const slug = `${name}`;
                 return (
                   <Link
                     key={product.variantId}
@@ -475,8 +474,7 @@ const Product = () => {
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
               {products.map((product) => {
                 const name = product?.name ? product.name.toLowerCase().replace(/\s+/g, "-") : "unknown-product";
-                const color = product?.color ? product.color.toLowerCase().replace(/\s+/g, "-") : "unknown-color";
-                const slug = `${name}-${color}`;
+                const slug = `${name}`;
                 return (
                   <Link
                     key={product.variantId}

@@ -55,18 +55,13 @@ const SearchDrawer = ({ isOpen, onClose }) => {
         }
     };
     // Hàm tạo slug từ tên sản phẩm và màu sắc
-    const createProductSlug = (name, color) => {
+    const createProductSlug = (name) => {
         const normalizedName = name
             ?.trim()
             .toLowerCase()
             .replace(/\s+/g, "-")
             .replace(/-+/g, "-") || "unknown-product";
-        const normalizedColor = color
-            ?.trim()
-            .toLowerCase()
-            .replace(/\s+/g, "-")
-            .replace(/-+/g, "-") || "unknown-color";
-        return `${normalizedName}-${normalizedColor}`;
+        return `${normalizedName}`;
     };
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -118,7 +113,7 @@ const SearchDrawer = ({ isOpen, onClose }) => {
                                 {searchResults.map((product) => (
                                     <GridItem key={product.variantId} justifySelf="center">
                                         <Link
-                                            to={`/products/${product.productId}/${createProductSlug(product.name, product.color)}`}
+                                            to={`/products/${product.productId}/${createProductSlug(product.name)}`}
                                             style={{ textDecoration: "none" }}
                                             onClick={onClose} // Thêm onClick để gọi onClose khi nhấp vào link
                                         >
