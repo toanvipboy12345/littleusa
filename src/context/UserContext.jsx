@@ -1,21 +1,35 @@
-// /* eslint-disable react-refresh/only-export-components */
+
 // import React, { createContext, useState, useEffect } from "react";
 // import axiosInstance from "../Api/axiosInstance";
-// import { useNavigate } from "react-router-dom"; // Thêm useNavigate nếu cần điều hướng trong context
+// import { useNavigate } from "react-router-dom";
 
 // export const UserContext = createContext();
 
 // export const UserProvider = ({ children }) => {
 //   const [user, setUser] = useState(null);
-//   const navigate = useNavigate(); // Thêm để điều hướng sau khi đăng nhập
-//   console.log(user);
-//   // Kiểm tra thông tin người dùng từ localStorage khi ứng dụng khởi động
+//   const navigate = useNavigate();
+
+//   // Kiểm tra session và đồng bộ user khi ứng dụng khởi động
 //   useEffect(() => {
+//     const checkSession = async () => {
+//       try {
+//         const response = await axiosInstance.get("/api/current-user");
+//         const user = response.data;
+//         localStorage.setItem("user", JSON.stringify(user));
+//         setUser(user);
+//       } catch (error) {
+//         console.error("Session check failed:", error);
+//         localStorage.removeItem("user");
+//         setUser(null);
+//         navigate("/login"); // Điều hướng đến trang đăng nhập nếu session không hợp lệ
+//       }
+//     };
+
 //     const storedUser = localStorage.getItem("user");
 //     if (storedUser) {
-//       setUser(JSON.parse(storedUser));
+//       checkSession(); // Kiểm tra session nếu localStorage có user
 //     }
-//   }, []);
+//   }, [navigate]);
 
 //   // Hàm xử lý đăng nhập
 //   const handleLogin = async (formData) => {
@@ -23,7 +37,7 @@
 //       const response = await axiosInstance.post("/login", formData);
 //       const { user } = response.data;
 //       localStorage.setItem("user", JSON.stringify(user));
-//       setUser(user); // Cập nhật user trong context
+//       setUser(user);
 //       if (user.role === "admin") {
 //         navigate("/admin");
 //       } else {
@@ -31,7 +45,7 @@
 //       }
 //     } catch (error) {
 //       console.error("Error during login:", error);
-//       throw error; // Ném lỗi để component Login xử lý hiển thị thông báo lỗi
+//       throw error;
 //     }
 //   };
 
@@ -40,7 +54,8 @@
 //     try {
 //       await axiosInstance.post("/api/logout");
 //       localStorage.removeItem("user");
-//       setUser(null); // Cập nhật user trong context thành null
+//       setUser(null);
+//       navigate("/login");
 //     } catch (error) {
 //       console.error("Error during logout:", error);
 //     }
@@ -52,7 +67,6 @@
 //     </UserContext.Provider>
 //   );
 // };
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useEffect } from "react";
 import axiosInstance from "../Api/axiosInstance";
 import { useNavigate } from "react-router-dom";
@@ -68,9 +82,15 @@ export const UserProvider = ({ children }) => {
     const checkSession = async () => {
       try {
         const response = await axiosInstance.get("/api/current-user");
-        const user = response.data;
-        localStorage.setItem("user", JSON.stringify(user));
-        setUser(user);
+        const userData = response.data;
+        localStorage.setItem("user", JSON.stringify(userData));
+        setUser(userData);
+
+        // Hợp nhất wishlist nếu có wishlistToken
+        const wishlistToken = localStorage.getItem("wishlistToken");
+        if (wishlistToken) {
+          await mergeWishlist(userData.id, wishlistToken);
+        }
       } catch (error) {
         console.error("Session check failed:", error);
         localStorage.removeItem("user");
@@ -81,9 +101,24 @@ export const UserProvider = ({ children }) => {
 
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      checkSession(); // Kiểm tra session nếu localStorage có user
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser); // Khôi phục user từ localStorage
+      checkSession(); // Kiểm tra session
     }
   }, [navigate]);
+
+  // Hàm hợp nhất wishlist
+  const mergeWishlist = async (userId, wishlistToken) => {
+    try {
+      await axiosInstance.post("/api/wishlist/merge", null, {
+        params: { userId, wishlistToken },
+      });
+      // Sau khi hợp nhất thành công, xóa wishlistToken
+      localStorage.removeItem("wishlistToken");
+    } catch (error) {
+      console.error("Error merging wishlist:", error);
+    }
+  };
 
   // Hàm xử lý đăng nhập
   const handleLogin = async (formData) => {
@@ -92,6 +127,13 @@ export const UserProvider = ({ children }) => {
       const { user } = response.data;
       localStorage.setItem("user", JSON.stringify(user));
       setUser(user);
+
+      // Hợp nhất wishlist nếu có wishlistToken
+      const wishlistToken = localStorage.getItem("wishlistToken");
+      if (wishlistToken) {
+        await mergeWishlist(user.id, wishlistToken);
+      }
+
       if (user.role === "admin") {
         navigate("/admin");
       } else {
@@ -108,6 +150,7 @@ export const UserProvider = ({ children }) => {
     try {
       await axiosInstance.post("/api/logout");
       localStorage.removeItem("user");
+      localStorage.removeItem("wishlistToken"); // Xóa wishlistToken khi đăng xuất
       setUser(null);
       navigate("/login");
     } catch (error) {

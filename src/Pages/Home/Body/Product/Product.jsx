@@ -35,7 +35,7 @@ import useDocumentTitle from "../../../../hook/useDocumentTitle";
 
 const Product = () => {
   const [products, setProducts] = useState([]);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(0); // Page bắt đầu từ 0 (tương ứng page 1)
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     category: [],
@@ -70,13 +70,13 @@ const Product = () => {
       priceMax,
     });
     setSort(sortParam);
-    setPage(pageParam >= 0 ? pageParam : 0);
+    setPage(pageParam >= 0 ? pageParam : 0); // Đảm bảo page bắt đầu từ 0
     updateAppliedFilters(category, brand, priceMin, priceMax);
 
     fetchBrands();
     fetchCategories();
-    fetchProducts();
-  }, []);
+    fetchProducts(pageParam >= 0 ? pageParam : 0); // Truyền page trực tiếp để đảm bảo đồng bộ
+  }, []); // Chỉ chạy khi mount
 
   const updateAppliedFilters = (cat, br, min, max) => {
     const filtersList = [];
@@ -105,53 +105,56 @@ const Product = () => {
     }
   }, []);
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    const startTime = Date.now();
+  const fetchProducts = useCallback(
+    async (currentPage) => {
+      setLoading(true);
+      const startTime = Date.now();
 
-    try {
-      const response = await axiosInstance.get("/api/product-dto/cards", {
-        params: {
-          page,
-          size,
-          category: filters.category.length > 0 ? filters.category.join(",") : undefined,
-          brand: filters.brand.length > 0 ? filters.brand.join(",") : undefined,
-          priceMin: filters.priceMin || undefined,
-          priceMax: filters.priceMax || undefined,
-          sort: sort || undefined,
-        },
-      });
-      setProducts(response.data.products);
-      console.log(response.data.products);
-      const totalCards = response.data.total;
-      setTotalPages(Math.ceil(totalCards / size) || 1);
+      try {
+        const response = await axiosInstance.get("/api/product-dto/cards", {
+          params: {
+            page: currentPage, // Sử dụng currentPage thay vì page từ state
+            size,
+            category: filters.category.length > 0 ? filters.category.join(",") : undefined,
+            brand: filters.brand.length > 0 ? filters.brand.join(",") : undefined,
+            priceMin: filters.priceMin || undefined,
+            priceMax: filters.priceMax || undefined,
+            sort: sort || undefined,
+          },
+        });
+        setProducts(response.data.products);
+        const totalCards = response.data.total;
+        setTotalPages(Math.ceil(totalCards / size) || 1);
 
-      const params = new URLSearchParams();
-      if (filters.category.length > 0) params.set("category", filters.category.join(","));
-      if (filters.brand.length > 0) params.set("brand", filters.brand.join(","));
-      if (filters.priceMin) params.set("priceMin", filters.priceMin);
-      if (filters.priceMax) params.set("priceMax", filters.priceMax);
-      if (sort) params.set("sort", sort);
-      params.set("page", page.toString());
-      setSearchParams(params);
+        // Cập nhật URL
+        const params = new URLSearchParams();
+        if (filters.category.length > 0) params.set("category", filters.category.join(","));
+        if (filters.brand.length > 0) params.set("brand", filters.brand.join(","));
+        if (filters.priceMin) params.set("priceMin", filters.priceMin);
+        if (filters.priceMax) params.set("priceMax", filters.priceMax);
+        if (sort) params.set("sort", sort);
+        params.set("page", currentPage.toString());
+        setSearchParams(params);
 
-      const elapsedTime = Date.now() - startTime;
-      const remainingTime = 1000 - elapsedTime;
-      if (remainingTime > 0) {
-        await new Promise((resolve) => setTimeout(resolve, remainingTime));
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = 1000 - elapsedTime;
+        if (remainingTime > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remainingTime));
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        toast({
+          title: "Lỗi khi lấy sản phẩm",
+          status: "error",
+          duration: 2000,
+          isClosable: true,
+        });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      toast({
-        title: "Lỗi khi lấy sản phẩm",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [page, filters, size, sort, setSearchParams, toast]);
+    },
+    [filters, size, sort, setSearchParams, toast]
+  );
 
   const handleFilterChange = (type) => (value) => {
     setFilters((prev) => ({
@@ -173,7 +176,7 @@ const Product = () => {
       else if (filterToRemove.startsWith("Giá đến:")) newFilters.priceMax = "";
       setTimeout(() => {
         updateAppliedFilters(newFilters.category, newFilters.brand, newFilters.priceMin, newFilters.priceMax);
-        fetchProducts();
+        fetchProducts(page); // Sử dụng page hiện tại
       }, 0);
       return newFilters;
     });
@@ -190,20 +193,20 @@ const Product = () => {
     setPage(0);
     setAppliedFilters([]);
     setSearchParams({ page: "0" });
-    fetchProducts();
+    fetchProducts(0); // Gọi với page 0
   };
 
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < totalPages) {
-      setPage(newPage);
-      fetchProducts();
+      setPage(newPage); // Cập nhật page (0-based)
+      fetchProducts(newPage); // Gọi fetchProducts với newPage
     }
   };
 
   const applyFilters = () => {
     setPage(0);
     updateAppliedFilters(filters.category, filters.brand, filters.priceMin, filters.priceMax);
-    fetchProducts();
+    fetchProducts(0); // Gọi với page 0
   };
 
   const imageBaseUrl = "http://localhost:8080";
@@ -371,15 +374,13 @@ const Product = () => {
         </Box>
 
         <Box w={{ base: "100%", md: "75%" }}>
-          {/* Thêm nút chọn kiểu hiển thị */}
           <Flex justify="flex-end" mb={4}>
             <HStack spacing={2}>
               <Button
                 variant={viewMode === "card" ? "solid" : "outline"}
                 onClick={() => setViewMode("card")}
-                p={0} // Loại bỏ padding để icon căn giữa
-
-                display="flex" // Đảm bảo flex để căn giữa icon
+                p={0}
+                display="flex"
                 alignItems="center"
                 justifyContent="center"
               >
@@ -388,9 +389,8 @@ const Product = () => {
               <Button
                 variant={viewMode === "list" ? "solid" : "outline"}
                 onClick={() => setViewMode("list")}
-                p={0} // Loại bỏ padding để icon căn giữa
-
-                display="flex" // Đảm bảo flex để căn giữa icon
+                p={0}
+                display="flex"
                 alignItems="center"
                 justifyContent="center"
               >
@@ -409,9 +409,6 @@ const Product = () => {
               <Text fontSize="lg" color="gray.600">Không có sản phẩm nào để hiển thị.</Text>
             </Flex>
           ) : viewMode === "card" ? (
-            // Hiển thị dạng Card (giữ nguyên như cũ)
-            // Hiển thị dạng Card
-            // Hiển thị dạng Card
             <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} spacing={{ base: 4, md: 6 }}>
               {products.map((product) => {
                 const name = product?.name ? product.name.toLowerCase().replace(/\s+/g, "-") : "unknown-product";
@@ -431,14 +428,14 @@ const Product = () => {
                       <Image
                         src={`${imageBaseUrl}${product.mainImage}`}
                         alt={product.name || "Product"}
-                        h={{ base: "150px", md: "200px" }} // Đặt chiều cao cố định, nhưng không giới hạn maxH
+                        h={{ base: "150px", md: "200px" }}
                         w="100%"
-                        objectFit="contain" // Đảm bảo ảnh hiển thị đầy đủ, không bị cắt
+                        objectFit="contain"
                         fallbackSrc="https://via.placeholder.com/200"
                       />
                       <Box p={{ base: 4, md: 4 }} position="relative">
                         <Heading
-                          size={{ base: "xs", md: "sm" }} // Giảm kích thước tiêu đề trên mobile
+                          size={{ base: "xs", md: "sm" }}
                           color="gray.800"
                           noOfLines={2}
                           textOverflow="ellipsis"
@@ -470,7 +467,6 @@ const Product = () => {
               })}
             </SimpleGrid>
           ) : (
-
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
               {products.map((product) => {
                 const name = product?.name ? product.name.toLowerCase().replace(/\s+/g, "-") : "unknown-product";
@@ -482,29 +478,29 @@ const Product = () => {
                     style={{ textDecoration: "none" }}
                   >
                     <Flex
-                      p={{ base: 2, md: 4 }} // Giảm padding trên mobile
+                      p={{ base: 2, md: 4 }}
                       transition="transform 0.2s ease"
                       _hover={{ transform: "scale(1.02)", bg: "gray.100" }}
                       align="start"
-                      minH={{ base: "120px", md: "150px" }} // Giảm chiều cao tối thiểu trên mobile
+                      minH={{ base: "120px", md: "150px" }}
                     >
                       <Image
                         src={`${imageBaseUrl}${product.mainImage}`}
                         alt={product.name || "Product"}
-                        boxSize={{ base: "100px", md: "150px" }} // Giảm kích thước ảnh trên mobile
+                        boxSize={{ base: "100px", md: "150px" }}
                         objectFit="cover"
-                        mr={{ base: 2, md: 4 }} // Giảm khoảng cách bên phải trên mobile
+                        mr={{ base: 2, md: 4 }}
                         fallbackSrc="https://via.placeholder.com/100"
                       />
                       <VStack align="start" flex="1" spacing={2}>
                         <Heading
-                          size={{ base: "sm", md: "md" }} // Giảm kích thước tiêu đề trên mobile
+                          size={{ base: "sm", md: "md" }}
                           color="gray.800"
-                          noOfLines={2} // Giới hạn tối đa 2 dòng
+                          noOfLines={2}
                           textOverflow="ellipsis"
-                          whiteSpace="normal" // Cho phép xuống dòng
+                          whiteSpace="normal"
                           overflow="hidden"
-                          w="100%" // Đảm bảo chiều rộng cố định
+                          w="100%"
                         >
                           {product.name || "Unnamed Product"}
                         </Heading>
@@ -537,8 +533,14 @@ const Product = () => {
               Trước
             </Button>
             {Array.from({ length: totalPages }, (_, index) => (
-              <Button key={index} onClick={() => handlePageChange(index)} variant={page === index ? "solid" : "outline"} size="sm" mx={1}>
-                {index + 1}
+              <Button
+                key={index}
+                onClick={() => handlePageChange(index)}
+                variant={page === index ? "solid" : "outline"}
+                size="sm"
+                mx={1}
+              >
+                {index + 1} {/* Hiển thị số trang bắt đầu từ 1 */}
               </Button>
             ))}
             <Button onClick={() => handlePageChange(page + 1)} isDisabled={page + 1 >= totalPages} variant="outline" size="sm">

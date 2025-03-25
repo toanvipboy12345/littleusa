@@ -414,6 +414,7 @@ const theme = extendTheme({
         "--primary-color": "#000000",
         "--hover-color": "#333333",
         "--text-color": "#FFFFFF",
+        "--link-nav": "#f5a623",
       },
       body: {
         bg: "gray.50",

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import axiosInstance from "../../../../Api/axiosInstance";
 import {
   Box,
@@ -24,6 +24,7 @@ import "swiper/css";
 import "swiper/css/thumbs";
 import { useCart } from "../../../../context/CartContext";
 import useDocumentTitle from "../../../../hook/useDocumentTitle";
+import { UserContext } from "../../../../context/UserContext"; // Import UserContext
 
 const ProductDetail = () => {
   const [product, setProduct] = useState(null);
@@ -37,6 +38,7 @@ const ProductDetail = () => {
   const toast = useToast();
   const BASE_URL = "http://localhost:8080";
   const { addToCart } = useCart();
+  const { user } = useContext(UserContext); // Lấy user từ UserContext
 
   useEffect(() => {
     const fetchProductDetail = async () => {
@@ -141,6 +143,51 @@ const ProductDetail = () => {
           isClosable: true,
         });
       }
+    }
+  };
+
+  // Hàm xử lý thêm vào wishlist
+  const addToWishlistHandler = async () => {
+    if (!selectedVariant) {
+      toast({ title: "Vui lòng chọn biến thể sản phẩm!", status: "warning", duration: 2000, isClosable: true });
+      return;
+    }
+
+    try {
+      // Lấy wishlistToken từ localStorage nếu có
+      let wishlistToken = localStorage.getItem("wishlistToken");
+
+      // Sử dụng userId từ UserContext nếu người dùng đã đăng nhập
+      const userId = user ? user.id : null;
+
+      const response = await axiosInstance.post("/api/wishlist/add", null, {
+        params: {
+          userId: userId, // Ưu tiên userId nếu người dùng đã đăng nhập
+          wishlistToken: userId ? null : wishlistToken, // Chỉ sử dụng wishlistToken nếu không có userId
+          variantId: selectedVariant.id,
+        },
+      });
+
+      // Nếu không có userId và wishlistToken được trả về, lưu vào localStorage
+      if (!userId && response.data.wishlistToken) {
+        localStorage.setItem("wishlistToken", response.data.wishlistToken);
+      }
+
+      toast({
+        title: "Đã thêm vào danh sách yêu thích",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error adding to wishlist:", error);
+      toast({
+        title: "Lỗi khi thêm vào danh sách yêu thích",
+        description: error.response?.data?.message || "Vui lòng thử lại.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -332,7 +379,7 @@ const ProductDetail = () => {
               variant="outline"
               size="sm"
               leftIcon={<Heart />}
-              onClick={() => toast({ title: "Đã thêm vào danh sách yêu thích", status: "success", duration: 2000, isClosable: true })}
+              onClick={addToWishlistHandler}
               textTransform="uppercase"
               h="40px"
               borderRadius="0"

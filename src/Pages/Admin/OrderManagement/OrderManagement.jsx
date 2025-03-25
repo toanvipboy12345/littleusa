@@ -124,58 +124,60 @@ const OrderManagement = () => {
   };
 
   // Hàm cập nhật trạng thái đơn hàng
-  const handleUpdateStatus = async (orderId) => {
-    const newStatus = statusUpdates[orderId];
-    if (!["SHIPPED", "DELIVERED"].includes(newStatus)) {
-      toast({
-        title: "Lỗi",
-        description: "Admin chỉ được cập nhật trạng thái thành SHIPPED hoặc DELIVERED.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
-      return;
-    }
-    try {
-      const response = await axiosInstance.put(`/api/orders/${orderId}/status`, {
-        status: newStatus,
-      });
-      const updatedOrder = { ...orders.find((order) => order.orderId === orderId), status: response.data.status };
-      setOrders(
-        orders.map((order) =>
-          order.orderId === orderId ? updatedOrder : order
-        )
-      );
-      setAllOrders(
-        allOrders.map((order) =>
-          order.orderId === orderId ? updatedOrder : order
-        )
-      ); // Cập nhật cả danh sách ban đầu
-      setStatusUpdates((prev) => {
-        const updated = { ...prev };
-        delete updated[orderId];
-        return updated;
-      });
-      toast({
-        title: "Thành công",
-        description: "Đã cập nhật trạng thái đơn hàng.",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
-    } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: error.response?.data?.message || "Không thể cập nhật trạng thái đơn hàng.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
-    }
-  };
+// Hàm cập nhật trạng thái đơn hàng
+const handleUpdateStatus = async (orderId) => {
+  const newStatus = statusUpdates[orderId];
+  if (!["SHIPPED", "DELIVERED"].includes(newStatus)) {
+    toast({
+      title: "Lỗi",
+      description: "Admin chỉ được cập nhật trạng thái thành SHIPPED hoặc DELIVERED.",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+      position: "top-right",
+    });
+    return;
+  }
+  try {
+    const response = await axiosInstance.put(`/api/orders/${orderId}/status`, {
+      status: newStatus,
+    });
+    const updatedOrder = { ...orders.find((order) => order.orderId === orderId), status: response.data.status };
+    setOrders(
+      orders.map((order) =>
+        order.orderId === orderId ? updatedOrder : order
+      )
+    );
+    setAllOrders(
+      allOrders.map((order) =>
+        order.orderId === orderId ? updatedOrder : order
+      )
+    ); // Cập nhật cả danh sách ban đầu
+    setStatusUpdates((prev) => {
+      const updated = { ...prev };
+      delete updated[orderId];
+      return updated;
+    });
+    toast({
+      title: "Thành công",
+      description: "Đã cập nhật trạng thái đơn hàng.",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+      position: "top-right",
+    });
+  } catch (error) {
+    toast({
+      title: "Lỗi",
+      // Sử dụng customMessage nếu có (từ interceptor 403), nếu không thì dùng message mặc định
+      description: error.customMessage || error.response?.data?.message || "Không thể cập nhật trạng thái đơn hàng.",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+      position: "top-right",
+    });
+  }
+};
 
   // Hàm mở dialog chi tiết đơn hàng
   const handleDetailOpen = (order) => {
