@@ -1,3 +1,4 @@
+
 // import React, { useContext, useEffect, useState } from "react";
 // import ProductManagement from "../Admin/ProductManagement/ProductManagement";
 // import { useNavigate } from "react-router-dom";
@@ -9,10 +10,12 @@
 // import OrderManagement from "./OrderManagement/OrderManagement";
 // import PurchaseOrderManagement from "../Admin/PurchaseOrderManagement/PurchaseOrderManagement";
 // import AddPurchaseOrder from "../Admin/PurchaseOrderManagement/AddPurchaseOrder";
-// import SupplierManagement from "../Admin/SupplierManagement/SupplierManagement"; // Import SupplierManagement
-// import UserManagement from "../Admin/UserManagement/UserManagement"; // Import UserManagement
-// import Dashboard from "../Admin/stats/Dashboard"; // Import Dashboard
-// import Statistics from "../Admin/Stats/Statistics"; // Import Statics
+// import SupplierManagement from "../Admin/SupplierManagement/SupplierManagement";
+// import UserManagement from "../Admin/UserManagement/UserManagement";
+// import Dashboard from "../Admin/stats/Dashboard";
+// import Statistics from "../Admin/Stats/Statistics";
+// import Notifications from "../Admin/NotificationsManagement/Notifications";
+// import BlogsManagement from "../Admin/BlogsManagement/BlogsManagement";
 // import {
 //   Box,
 //   Flex,
@@ -45,7 +48,7 @@
 //   FileText,
 //   PlusSquare,
 //   List,
-//   UserCheck, // New icon for Supplier Management
+//   UserCheck,
 // } from "react-feather";
 
 // const Admin = () => {
@@ -60,7 +63,7 @@
 //     const titles = {
 //       dashboard: "Trang chủ",
 //       products: "Quản lý sản phẩm",
-//       suppliers: "Quản lý nhà cung cấp", // New title for Supplier Management
+//       suppliers: "Quản lý nhà cung cấp",
 //       brands: "Quản lý thương hiệu",
 //       categories: "Quản lý danh mục",
 //       coupons: "Quản lý mã giảm giá",
@@ -74,6 +77,7 @@
 //     };
 //     document.title = titles[activeMenu] || "Admin - Dashboard";
 //   }, [activeMenu]);
+
 
 //   useEffect(() => {
 //     if (!user || user.role !== "admin") {
@@ -91,7 +95,7 @@
 //             <ProductManagement />
 //           </Box>
 //         );
-//       case "suppliers": // New case for Supplier Management
+//       case "suppliers":
 //         return (
 //           <Box>
 //             <SupplierManagement />
@@ -118,7 +122,7 @@
 //       case "notifications":
 //         return (
 //           <Box>
-//             <Text>Notifications Document</Text>
+//             <Notifications />
 //           </Box>
 //         );
 //       case "brands":
@@ -249,12 +253,12 @@
 //             {isSidebarCollapsed ? null : "Sản phẩm"}
 //           </Button>
 //           <Button
-//             onClick={() => handleMenuClick("suppliers")} // New menu item
+//             onClick={() => handleMenuClick("suppliers")}
 //             w="full"
 //             justifyContent={isSidebarCollapsed ? "center" : "start"}
 //             borderRadius={0}
 //             px={isSidebarCollapsed ? 0 : undefined}
-//             leftIcon={<UserCheck size={20} />} // Using UserCheck icon
+//             leftIcon={<UserCheck size={20} />}
 //             bg={activeMenu === "suppliers" ? "primary.500" : "transparent"}
 //             color={activeMenu === "suppliers" ? "white" : "gray.600"}
 //             _dark={{
@@ -605,6 +609,7 @@ import UserManagement from "../Admin/UserManagement/UserManagement";
 import Dashboard from "../Admin/stats/Dashboard";
 import Statistics from "../Admin/Stats/Statistics";
 import Notifications from "../Admin/NotificationsManagement/Notifications";
+import BlogsManagement from "../Admin/BlogsManagement/BlogsManagement"; // Thêm import BlogsManagement
 import {
   Box,
   Flex,
@@ -638,6 +643,7 @@ import {
   PlusSquare,
   List,
   UserCheck,
+  File, // Thêm icon File cho BlogsManagement
 } from "react-feather";
 
 const Admin = () => {
@@ -663,10 +669,10 @@ const Admin = () => {
       notifications: "Thông báo",
       addPurchaseOrder: "Nhập hàng",
       purchaseOrders: "Danh sách hóa đơn",
+      blogs: "Quản lý bài viết", // Thêm title cho BlogsManagement
     };
     document.title = titles[activeMenu] || "Admin - Dashboard";
   }, [activeMenu]);
-
 
   useEffect(() => {
     if (!user || user.role !== "admin") {
@@ -748,6 +754,12 @@ const Admin = () => {
         return (
           <Box>
             <PurchaseOrderManagement />
+          </Box>
+        );
+      case "blogs": // Thêm case cho BlogsManagement
+        return (
+          <Box>
+            <BlogsManagement />
           </Box>
         );
       default:
@@ -1049,6 +1061,25 @@ const Admin = () => {
             _active={{ bg: "primary.500", color: "white" }}
           >
             {isSidebarCollapsed ? null : "Thông báo"}
+          </Button>
+          <Button
+            onClick={() => handleMenuClick("blogs")} // Thêm menu item cho BlogsManagement
+            w="full"
+            justifyContent={isSidebarCollapsed ? "center" : "start"}
+            borderRadius={0}
+            px={isSidebarCollapsed ? 0 : undefined}
+            leftIcon={<File size={20} />}
+            bg={activeMenu === "blogs" ? "primary.500" : "transparent"}
+            color={activeMenu === "blogs" ? "white" : "gray.600"}
+            _dark={{
+              color: activeMenu === "blogs" ? "white" : "gray.300",
+              _hover: { bg: "gray.700", color: "white" },
+              _active: { bg: "primary.500", color: "white" },
+            }}
+            _hover={{ bg: "gray.100", color: "gray.800" }}
+            _active={{ bg: "primary.500", color: "white" }}
+          >
+            {isSidebarCollapsed ? null : "Quản lý bài viết"}
           </Button>
           <Button
             onClick={() => {

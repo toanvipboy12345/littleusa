@@ -23,6 +23,9 @@ import PaymentError from "./Pages/Home/Body/Checkout/PaymentError";
 import PaymentSuccess from "./Pages/Home/Body/Checkout/PaymentSuccess";
 import Order from "./Pages/Home/Body/Account/Order/Order";
 import Account from "./Pages/Home/Body/Account/Account";
+import Blog from "./Pages/Home/Body/Blogs/Blog";
+import Blogdetail from "./Pages/Home/Body/Blogs/Blogdetail";
+import Abouts from "./Pages/Home/Body/About/About-us";
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user } = React.useContext(UserContext);
 
@@ -76,6 +79,12 @@ const App = () => {
 
               {/* Trang đơn hàng */}
               <Route path="/order" element={<MainLayout><Order /></MainLayout>} />
+              {/* Trang bài viết */}
+              <Route path="/blogs" element={<MainLayout><Blog /></MainLayout>} />
+              {/* Trang chi tiết bài viết */}
+              <Route path="/blog/:id" element={<MainLayout><Blogdetail /></MainLayout>} />
+              {/* Trang giới thiệu */}
+              <Route path="/about-us" element={<MainLayout><Abouts /></MainLayout>} />
               {/* Trang quản trị */}
               <Route 
                 path="/admin" 

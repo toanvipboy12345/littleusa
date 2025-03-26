@@ -35,7 +35,7 @@ import useDocumentTitle from "../../../../hook/useDocumentTitle";
 
 const Product = () => {
   const [products, setProducts] = useState([]);
-  const [page, setPage] = useState(0); // Page bắt đầu từ 0 (tương ứng page 1)
+  const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     category: [],
@@ -55,6 +55,7 @@ const Product = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
 
+  // Khởi tạo dữ liệu ban đầu khi mount
   useEffect(() => {
     const category = searchParams.get("category")?.split(",") || [];
     const brand = searchParams.get("brand")?.split(",") || [];
@@ -70,13 +71,34 @@ const Product = () => {
       priceMax,
     });
     setSort(sortParam);
-    setPage(pageParam >= 0 ? pageParam : 0); // Đảm bảo page bắt đầu từ 0
+    setPage(pageParam >= 0 ? pageParam : 0);
     updateAppliedFilters(category, brand, priceMin, priceMax);
 
     fetchBrands();
     fetchCategories();
-    fetchProducts(pageParam >= 0 ? pageParam : 0); // Truyền page trực tiếp để đảm bảo đồng bộ
+    fetchProducts(pageParam >= 0 ? pageParam : 0, { category, brand, priceMin, priceMax, sort: sortParam });
   }, []); // Chỉ chạy khi mount
+
+  // Theo dõi searchParams khi URL thay đổi từ Header
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get("category")?.split(",") || [];
+    const pageFromUrl = parseInt(searchParams.get("page") || "0", 10);
+
+    // Chỉ fetch lại nếu category từ URL khác với filters hiện tại
+    if (JSON.stringify(categoryFromUrl) !== JSON.stringify(filters.category)) {
+      setFilters((prev) => ({
+        ...prev,
+        category: categoryFromUrl,
+      }));
+      setPage(0); // Reset về page 0 khi danh mục thay đổi
+      updateAppliedFilters(categoryFromUrl, filters.brand, filters.priceMin, filters.priceMax);
+      fetchProducts(0, { ...filters, category: categoryFromUrl }); // Fetch với danh mục mới
+    } else if (pageFromUrl !== page) {
+      // Nếu chỉ page thay đổi, fetch lại với page mới
+      setPage(pageFromUrl);
+      fetchProducts(pageFromUrl, filters);
+    }
+  }, [searchParams]); // Theo dõi searchParams
 
   const updateAppliedFilters = (cat, br, min, max) => {
     const filtersList = [];
@@ -106,19 +128,19 @@ const Product = () => {
   }, []);
 
   const fetchProducts = useCallback(
-    async (currentPage) => {
+    async (currentPage, appliedFilters) => {
       setLoading(true);
       const startTime = Date.now();
 
       try {
         const response = await axiosInstance.get("/api/product-dto/cards", {
           params: {
-            page: currentPage, // Sử dụng currentPage thay vì page từ state
+            page: currentPage,
             size,
-            category: filters.category.length > 0 ? filters.category.join(",") : undefined,
-            brand: filters.brand.length > 0 ? filters.brand.join(",") : undefined,
-            priceMin: filters.priceMin || undefined,
-            priceMax: filters.priceMax || undefined,
+            category: appliedFilters.category.length > 0 ? appliedFilters.category.join(",") : undefined,
+            brand: appliedFilters.brand.length > 0 ? appliedFilters.brand.join(",") : undefined,
+            priceMin: appliedFilters.priceMin || undefined,
+            priceMax: appliedFilters.priceMax || undefined,
             sort: sort || undefined,
           },
         });
@@ -126,15 +148,8 @@ const Product = () => {
         const totalCards = response.data.total;
         setTotalPages(Math.ceil(totalCards / size) || 1);
 
-        // Cập nhật URL
-        const params = new URLSearchParams();
-        if (filters.category.length > 0) params.set("category", filters.category.join(","));
-        if (filters.brand.length > 0) params.set("brand", filters.brand.join(","));
-        if (filters.priceMin) params.set("priceMin", filters.priceMin);
-        if (filters.priceMax) params.set("priceMax", filters.priceMax);
-        if (sort) params.set("sort", sort);
-        params.set("page", currentPage.toString());
-        setSearchParams(params);
+        // Chỉ cập nhật searchParams khi người dùng chủ động áp dụng bộ lọc, không phải mỗi lần fetch
+        // Ở đây bỏ setSearchParams để tránh vòng lặp
 
         const elapsedTime = Date.now() - startTime;
         const remainingTime = 1000 - elapsedTime;
@@ -153,7 +168,7 @@ const Product = () => {
         setLoading(false);
       }
     },
-    [filters, size, sort, setSearchParams, toast]
+    [size, sort, toast]
   );
 
   const handleFilterChange = (type) => (value) => {
@@ -174,39 +189,47 @@ const Product = () => {
       else if (filterToRemove.startsWith("Thương hiệu:")) newFilters.brand = [];
       else if (filterToRemove.startsWith("Giá từ:")) newFilters.priceMin = "";
       else if (filterToRemove.startsWith("Giá đến:")) newFilters.priceMax = "";
-      setTimeout(() => {
-        updateAppliedFilters(newFilters.category, newFilters.brand, newFilters.priceMin, newFilters.priceMax);
-        fetchProducts(page); // Sử dụng page hiện tại
-      }, 0);
+      updateAppliedFilters(newFilters.category, newFilters.brand, newFilters.priceMin, newFilters.priceMax);
+      fetchProducts(page, newFilters);
       return newFilters;
     });
   };
 
   const clearAllFilters = () => {
-    setFilters({
+    const newFilters = {
       category: [],
       brand: [],
       priceMin: "",
       priceMax: "",
-    });
+    };
+    setFilters(newFilters);
     setSort("");
     setPage(0);
     setAppliedFilters([]);
     setSearchParams({ page: "0" });
-    fetchProducts(0); // Gọi với page 0
+    fetchProducts(0, newFilters);
   };
 
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < totalPages) {
-      setPage(newPage); // Cập nhật page (0-based)
-      fetchProducts(newPage); // Gọi fetchProducts với newPage
+      setPage(newPage);
+      setSearchParams({ ...Object.fromEntries(searchParams), page: newPage.toString() });
+      fetchProducts(newPage, filters);
     }
   };
 
   const applyFilters = () => {
     setPage(0);
     updateAppliedFilters(filters.category, filters.brand, filters.priceMin, filters.priceMax);
-    fetchProducts(0); // Gọi với page 0
+    const params = new URLSearchParams();
+    if (filters.category.length > 0) params.set("category", filters.category.join(","));
+    if (filters.brand.length > 0) params.set("brand", filters.brand.join(","));
+    if (filters.priceMin) params.set("priceMin", filters.priceMin);
+    if (filters.priceMax) params.set("priceMax", filters.priceMax);
+    if (sort) params.set("sort", sort);
+    params.set("page", "0");
+    setSearchParams(params);
+    fetchProducts(0, filters);
   };
 
   const imageBaseUrl = "http://localhost:8080";
@@ -540,7 +563,7 @@ const Product = () => {
                 size="sm"
                 mx={1}
               >
-                {index + 1} {/* Hiển thị số trang bắt đầu từ 1 */}
+                {index + 1}
               </Button>
             ))}
             <Button onClick={() => handlePageChange(page + 1)} isDisabled={page + 1 >= totalPages} variant="outline" size="sm">

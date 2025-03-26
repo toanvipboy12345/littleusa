@@ -8,44 +8,66 @@ import {
   ListItem,
   Link,
   IconButton,
-  useBreakpointValue, // Thêm hook để responsive
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { Phone, Mail, Facebook, Instagram, Eye, Heart, ArrowUp, X } from "react-feather";
 import { motion, AnimatePresence } from "framer-motion";
 import bocongthuong from "../../../Assets/Images/bocongthuong.png";
 import { UserContext } from "../../../context/UserContext";
 import axiosInstance from "../../../Api/axiosInstance";
+import { Link as RouterLink } from "react-router-dom"; // Đổi tên để tránh xung đột với Chakra Link
 
 const MotionBox = motion(Box);
 
 const Footer = () => {
   const [isWishlistVisible, setIsWishlistVisible] = useState(false);
   const [wishlist, setWishlist] = useState([]);
+  const [policyBlogs, setPolicyBlogs] = useState([]); // Thêm state cho blog chính sách
   const { user } = useContext(UserContext);
   const sidebarRef = useRef(null);
   const [sidebarHeight, setSidebarHeight] = useState("auto");
 
-  // Responsive: Điều chỉnh chiều rộng của MotionBox và kích thước ảnh dựa trên breakpoint
   const motionBoxWidth = useBreakpointValue({
-    base: "350px", // Mobile
-    md: "450px",   // Tablet
-    lg: "500px",   // Desktop
+    base: "350px",
+    md: "450px",
+    lg: "500px",
   });
 
   const imageSize = useBreakpointValue({
-    base: "80px",  // Mobile
-    md: "100px",   // Tablet
-    lg: "100px",   // Desktop
+    base: "80px",
+    md: "100px",
+    lg: "100px",
   });
 
-  // Đo chiều cao của sidebar khi component được render
+  // Fetch danh sách blog khi component mount
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  const fetchBlogs = async () => {
+    try {
+      const response = await axiosInstance.get("/api/blogs");
+      console.log("Blogs from API in Footer:", response.data);
+      // Lọc các blog có tiêu đề chứa "Chính sách" (không phân biệt hoa/thường) và đã xuất bản
+      const filteredBlogs = response.data.filter(
+        (blog) =>
+          blog.isPublished &&
+          blog.title.toUpperCase().includes("CHÍNH SÁCH")
+      );
+      console.log("Filtered policy blogs:", filteredBlogs); // Debug xem lọc được gì
+      setPolicyBlogs(filteredBlogs);
+    } catch (error) {
+      console.error("Error fetching blogs for footer:", error);
+      setPolicyBlogs([]);
+    }
+  };
+
   useEffect(() => {
     if (sidebarRef.current) {
       setSidebarHeight(`${sidebarRef.current.offsetHeight}px`);
     }
   }, []);
 
-  // Hàm lấy danh sách wishlist
   const fetchWishlist = async () => {
     try {
       const wishlistToken = localStorage.getItem("wishlistToken");
@@ -53,31 +75,29 @@ const Footer = () => {
 
       const response = await axiosInstance.get("/api/wishlist", { params });
       setWishlist(response.data);
-      setIsWishlistVisible(true); // Hiển thị sidebar yêu thích
+      setIsWishlistVisible(true);
     } catch (error) {
       console.error("Error fetching wishlist:", error);
       setWishlist([]);
-      setIsWishlistVisible(true); // Vẫn hiển thị để thông báo trống
+      setIsWishlistVisible(true);
     }
   };
 
-  // Hàm xử lý click vào icon Heart
   const handleWishlistToggle = () => {
     if (isWishlistVisible) {
-      setIsWishlistVisible(false); // Ẩn sidebar yêu thích
+      setIsWishlistVisible(false);
     } else {
-      fetchWishlist(); // Lấy danh sách và hiển thị sidebar yêu thích
+      fetchWishlist();
     }
   };
 
-  // Hàm đóng sidebar yêu thích
   const handleWishlistClose = () => {
     setIsWishlistVisible(false);
   };
 
   return (
     <Box position="relative">
-      {/* Thanh sidebar cố định (chứa các icon và danh sách yêu thích) */}
+      {/* Thanh sidebar cố định */}
       <Box
         ref={sidebarRef}
         position="fixed"
@@ -92,12 +112,11 @@ const Footer = () => {
         flexDirection="row"
         zIndex="1000"
       >
-        {/* Phần mở rộng chứa danh sách yêu thích */}
         <AnimatePresence>
           {isWishlistVisible && (
             <MotionBox
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: motionBoxWidth, opacity: 1 }} // Sử dụng giá trị responsive
+              animate={{ width: motionBoxWidth, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
               bg="white"
@@ -131,36 +150,30 @@ const Footer = () => {
               ) : (
                 <Box w="100%">
                   {wishlist.map((item) => (
-                    <Flex
-                      key={item.id}
-                      align="flex-start" // Căn sát lề trên
-                      mb={4}
-                      w="100%"
-                    >
+                    <Flex key={item.id} align="flex-start" mb={4} w="100%">
                       <Image
                         src={`http://localhost:8080${item.mainImage}`}
                         alt={item.productName}
-                        boxSize={imageSize} // Sử dụng kích thước ảnh responsive
+                        boxSize={imageSize}
                         objectFit="cover"
                         mr={3}
                       />
                       <Box flex="1">
-                        <Text     fontSize={{ base: "xs", md: "md" }} fontWeight="bold" isTruncated>
+                        <Text fontSize={{ base: "xs", md: "md" }} fontWeight="bold" isTruncated>
                           {item.productName} - {item.color}
                         </Text>
                         <Flex align="center" w="100%" justify="flex-start">
                           {item.discountPrice ? (
                             <>
-                              <Text     fontSize={{ base: "xs", md: "md" }} fontWeight="bold" mr={2}>
+                              <Text fontSize={{ base: "xs", md: "md" }} fontWeight="bold" mr={2}>
                                 {item.discountPrice.toLocaleString("vi-VN")} VND
                               </Text>
-                              <Text     fontSize={{ base: "xs", md: "md" }} color="gray.500" textDecoration="line-through">
+                              <Text fontSize={{ base: "xs", md: "md" }} color="gray.500" textDecoration="line-through">
                                 {item.price.toLocaleString("vi-VN")} VND
                               </Text>
-
                             </>
                           ) : (
-                            <Text     fontSize={{ base: "xs", md: "md" }} fontWeight="bold">
+                            <Text fontSize={{ base: "xs", md: "md" }} fontWeight="bold">
                               {item.price.toLocaleString("vi-VN")} VND
                             </Text>
                           )}
@@ -174,7 +187,6 @@ const Footer = () => {
           )}
         </AnimatePresence>
 
-        {/* Thanh sidebar chính chứa các icon */}
         <Box
           bg="white"
           borderTopLeftRadius={isWishlistVisible ? "0" : "8px"}
@@ -197,7 +209,6 @@ const Footer = () => {
           >
             <Eye size={{ base: 20, sm: 24, md: 28 }} color="gray" _hover={{ color: "blue.600" }} />
           </Box>
-
           <Box
             p={{ base: "8px", sm: "10px", md: "15px" }}
             borderBottom="1px solid"
@@ -211,7 +222,6 @@ const Footer = () => {
           >
             <Heart size={{ base: 20, sm: 24, md: 28 }} color="gray" _hover={{ color: "pink.600" }} />
           </Box>
-
           <Box
             p={{ base: "8px", sm: "10px", md: "15px" }}
             borderBottom="1px solid"
@@ -224,7 +234,6 @@ const Footer = () => {
           >
             <Facebook size={{ base: 20, sm: "24", md: 28 }} color="gray" _hover={{ color: "green.600" }} />
           </Box>
-
           <Box
             p={{ base: "8px", sm: "10px", md: "15px" }}
             borderBottom="1px solid"
@@ -237,7 +246,6 @@ const Footer = () => {
           >
             <Instagram size={{ base: 20, sm: "24", md: 28 }} color="gray" _hover={{ color: "purple.600" }} />
           </Box>
-
           <Box
             p={{ base: "8px", sm: "10px", md: "15px" }}
             _hover={{
@@ -267,11 +275,28 @@ const Footer = () => {
             <Box flex="1" textAlign={{ base: "center", md: "center" }} mb={{ base: "20px", md: "0" }} w={{ base: "100%", md: "auto" }}>
               <Text fontSize="xl" fontWeight="bold" mb="15px" color="var(--text-color)">HỖ TRỢ KHÁCH HÀNG</Text>
               <List spacing="10px" pl="0">
-                <ListItem><Link color="var(--text-color)" _hover={{ color: "var(--text-color)", textDecoration: "underline" }} cursor="pointer" fontSize="sm">Hướng dẫn mua hàng</Link></ListItem>
-                <ListItem><Link color="var(--text-color)" _hover={{ color: "var(--text-color)", textDecoration: "underline" }} cursor="pointer" fontSize="sm">Chính sách đổi sản phẩm</Link></ListItem>
-                <ListItem><Link color="var(--text-color)" _hover={{ color: "var(--text-color)", textDecoration: "underline" }} cursor="pointer" fontSize="sm">Chính sách vận chuyển</Link></ListItem>
-                <ListItem><Link color="var(--text-color)" _hover={{ color: "var(--text-color)", textDecoration: "underline" }} cursor="pointer" fontSize="sm">Chính sách bảo mật</Link></ListItem>
-                <ListItem><Link color="var(--text-color)" _hover={{ color: "var(--text-color)", textDecoration: "underline" }} cursor="pointer" fontSize="sm">Chính sách ký gửi</Link></ListItem>
+                {policyBlogs.length > 0 ? (
+                  policyBlogs.map((blog) => (
+                    <ListItem key={blog.id}>
+                      <Link
+                        as={RouterLink}
+                        to={`/blog/${blog.id}`}
+                        color="var(--text-color)"
+                        _hover={{ color: "var(--text-color)", textDecoration: "underline" }}
+                        cursor="pointer"
+                        fontSize="sm"
+                      >
+                        {blog.title}
+                      </Link>
+                    </ListItem>
+                  ))
+                ) : (
+                  <ListItem>
+                    <Text color="var(--text-color)" fontSize="sm">
+                      Chưa có chính sách nào được đăng.
+                    </Text>
+                  </ListItem>
+                )}
               </List>
             </Box>
 
@@ -280,22 +305,22 @@ const Footer = () => {
               <Box mb="10px">
                 <Flex align="center" justify={{ base: "center", md: "flex-end" }} mb="5px">
                   <Phone size={20} color="var(--text-color)" opacity="0.8" mr="15px" />
-                  <Text fontSize="sm" color="var(--text-color)" ml="2">0935.483.679</Text>
+                  <Text fontSize="sm" color="var(--text-color)" ml="2">0211.3301.747</Text>
                 </Flex>
                 <Flex align="center" justify={{ base: "center", md: "flex-end" }}>
                   <Mail size={20} color="var(--text-color)" opacity="0.8" mr="15px" />
-                  <Text fontSize="sm" color="var(--text-color)" ml="2">theairsg@gmail.com</Text>
+                  <Text fontSize="sm" color="var(--text-color)" ml="2">littleusaapp@gmail.com</Text>
                 </Flex>
               </Box>
               <Flex justify={{ base: "center", md: "flex-end" }} mt="10px" gap="15px">
-                <Facebook size={25} color="var(--text-color)" opacity="0.8" cursor="pointer" _hover={{ opacity: 1, transition: "all 0.3s ease" }} />
+                <Facebook size={25} color="var(--text-color)" opacity=" personally" cursor="pointer" _hover={{ opacity: 1, transition: "all 0.3s ease" }} />
                 <Instagram size={25} color="var(--text-color)" opacity="0.8" cursor="pointer" _hover={{ opacity: 1, transition: "all 0.3s ease" }} />
               </Flex>
             </Box>
           </Flex>
 
           <Box textAlign="center" mt="20px" fontSize="xs">
-            <Text color="var(--text-color)" opacity="0.7">Copyright © 2025 Powered by THEAIRSAIGON™</Text>
+            <Text color="var(--text-color)" opacity="0.7">Copyright © 2025 Powered by LITTLEUSA™</Text>
           </Box>
         </Box>
       </Box>

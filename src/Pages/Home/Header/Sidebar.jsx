@@ -120,7 +120,7 @@ const Sidebar = ({ showSidebar, closeSidebar, showAccountNav, setShowAccountNav 
             </Button>
             <Button
               as={RouterLink}
-              to="/blog"
+              to="/blogs"
               variant="ghost"
               justifyContent="space-between"
               rightIcon={<Book />}

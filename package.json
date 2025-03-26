@@ -12,6 +12,12 @@
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/react": "^2.10.6",
+    "@editorjs/editorjs": "^2.30.8",
+    "@editorjs/header": "^2.8.8",
+    "@editorjs/image": "^2.10.2",
+    "@editorjs/inline-code": "^1.5.1",
+    "@editorjs/list": "^2.0.6",
+    "@editorjs/paragraph": "^2.11.7",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "axios": "^1.8.1",

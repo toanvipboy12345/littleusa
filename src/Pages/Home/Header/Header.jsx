@@ -99,7 +99,7 @@ const Header = () => {
       <Box
         className="header-top"
         bg="var(--primary-color)"
-        display={{ base: "none", md: "none", lg: "flex" }} // Ẩn trên base và md, chỉ hiển thị trên lg
+        display={{ base: "none", md: "none", lg: "flex" }}
         h={isScrolled ? "0px" : "40px"}
         opacity={isScrolled ? 0 : 1}
         overflow="hidden"
@@ -112,14 +112,13 @@ const Header = () => {
 
       <Box className="header-main" py="25px" boxShadow="0 2px 4px rgba(0, 0, 0, 0.1)" position="relative">
         <Flex
-          justify="space-between" // Chỉnh lại để sidebar, logo, và giỏ hàng căn đều trên base và md
+          justify="space-between"
           align="center"
           w={{ base: "100%", md: "100%", lg: "80%" }}
           mx="auto"
           gap={{ base: "10px", md: "10px", lg: "20px" }}
         >
           <Flex justify="space-between" align="center" w="100%">
-            {/* Button Sidebar (hiển thị trên base và md) */}
             <Box display={{ base: "flex", md: "flex", lg: "none" }} flex="0" px={{ base: "10px", md: "10px" }}>
               <IconButton
                 icon={<MenuIcon />}
@@ -130,7 +129,6 @@ const Header = () => {
               />
             </Box>
 
-            {/* Logo (hiển thị trên tất cả các breakpoint) */}
             <Box
               flex={{ base: "0", md: "0", lg: "0" }}
               textAlign="center"
@@ -150,10 +148,9 @@ const Header = () => {
               </RouterLink>
             </Box>
 
-            {/* Các nút điều hướng (chỉ hiển thị trên lg) */}
             <Box
               flex="1"
-              display={{ base: "none", md: "none", lg: "flex" }} // Ẩn trên base và md, chỉ hiển thị trên lg
+              display={{ base: "none", md: "none", lg: "flex" }}
               justifyContent="center"
               alignItems="center"
               gap="20px"
@@ -281,7 +278,7 @@ const Header = () => {
                 >
                   <Button
                     as={RouterLink}
-                    to="/categories"
+                    to="/product" // Chỉ định đường dẫn mặc định
                     variant="ghost"
                     color="var(--primary-color)"
                     position="relative"
@@ -340,10 +337,11 @@ const Header = () => {
                             <Box
                               key={category.id}
                               as={RouterLink}
-                              to={`/categories/${category.id}`}
+                              to={`/product?category=${encodeURIComponent(category.name)}`}
                               px={3}
                               py={6}
                               transition="all 0.2s ease-in-out"
+                              _hover={{ color: "var(--hover-color)" }}
                             >
                               <Text fontSize="md" fontWeight="bold" textTransform="uppercase">
                                 {category.name}
@@ -357,7 +355,7 @@ const Header = () => {
                 </Box>
                 <Button
                   as={RouterLink}
-                  to="/blog"
+                  to="/blogs"
                   variant="ghost"
                   color="var(--primary-color)"
                   position="relative"
@@ -387,16 +385,14 @@ const Header = () => {
               </Flex>
             </Box>
 
-            {/* Biểu tượng giỏ hàng (hiển thị trên tất cả các breakpoint) */}
             <Box flex={{ base: "0", md: "0", lg: "0" }} minW={{ base: "auto", md: "auto", lg: "150px" }} px={{ base: "10px", md: "10px" }}>
               <Flex align="center" justify="flex-end" gap={{ base: "0", md: "0", lg: "10px" }}>
-                {/* Ẩn biểu tượng tìm kiếm và tài khoản trên base và md */}
                 <IconButton
                   icon={<Search />}
                   aria-label="Search"
                   variant="ghost"
                   color="var(--primary-color)"
-                  display={{ base: "none", md: "none", lg: "flex" }} // Ẩn trên base và md
+                  display={{ base: "none", md: "none", lg: "flex" }}
                   sx={{ "&:hover": { bg: "transparent", color: "var(--primary-color)" } }}
                   onClick={() => setIsSearchOpen(true)}
                 />
@@ -424,7 +420,6 @@ const Header = () => {
                     {totalItems || 0}
                   </Text>
                 </IconButton>
-                {/* Ẩn nút tài khoản trên base và md */}
                 <Box display={{ base: "none", md: "none", lg: "flex" }}>
                   <Menu>
                     <MenuButton as={Button} variant="outline" color="var(--primary-color)" leftIcon={<User />}>
