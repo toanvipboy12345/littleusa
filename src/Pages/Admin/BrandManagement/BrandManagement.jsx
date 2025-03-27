@@ -30,7 +30,8 @@ import {
   HStack,
   VStack,
   Text,
-  Tooltip, // Thêm Tooltip
+  Tooltip,
+  Select,
 } from "@chakra-ui/react";
 import { Trash2, Edit2, Search, ChevronLeft, ChevronRight } from "react-feather";
 import AddBrand from "./AddBrand";
@@ -42,7 +43,7 @@ const BrandManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const toast = useToast();
 
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -79,6 +80,13 @@ const BrandManagement = () => {
     const value = e.target.value;
     setSearchTerm(value);
     fetchBrands(value);
+  };
+
+  // Hàm handleItemsPerPageChange: Xử lý khi người dùng thay đổi số lượng hiển thị trên mỗi trang
+  const handleItemsPerPageChange = (e) => {
+    const newItemsPerPage = parseInt(e.target.value);
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
   };
 
   const handleDeleteOpen = (id) => {
@@ -155,23 +163,23 @@ const BrandManagement = () => {
 
   return (
     <Box
-      p={{ base: 1, md: 4 }} // Padding nhỏ hơn trên mobile
+      p={{ base: 1, md: 4 }}
       mx="auto"
-      maxW={{ base: "100%", md: "100%" }} // Full width trên mobile, giới hạn trên tablet/desktop
-      w="100%" // Đảm bảo chiều rộng 100% để không tràn
-      overflowX="hidden" // Ngăn tràn chiều ngang
+      maxW={{ base: "100%", md: "100%" }}
+      w="100%"
+      overflowX="hidden"
     >
       <Tabs index={activeTab} onChange={(index) => setActiveTab(index)}>
         <TabList
           mb={{ base: 2, md: 4 }}
-          overflowX={{ base: "auto", md: "visible" }} // Cuộn ngang trên mobile, hiển thị bình thường trên desktop
-          whiteSpace="nowrap" // Ngăn không cho xuống dòng trên mobile
+          overflowX={{ base: "auto", md: "visible" }}
+          whiteSpace="nowrap"
           sx={{
             "::-webkit-scrollbar": {
-              display: "none", // Ẩn thanh cuộn trên Chrome/Safari
+              display: "none",
             },
-            "-ms-overflow-style": "none", // Ẩn thanh cuộn trên IE/Edge
-            "scrollbar-width": "none", // Ẩn thanh cuộn trên Firefox
+            "-ms-overflow-style": "none",
+            "scrollbar-width": "none",
           }}
         >
           <Tab fontSize={{ base: "sm", md: "md" }}>Danh sách thương hiệu</Tab>
@@ -180,7 +188,15 @@ const BrandManagement = () => {
 
         <TabPanels>
           <TabPanel p={0}>
-            <Stack spacing={{ base: 2, md: 4 }} mb={{ base: 2, md: 4 }}>
+            {/* Đặt tìm kiếm và chọn số lượng hiển thị trên cùng một hàng */}
+            <Flex
+              direction={{ base: "column", md: "row" }}
+              align={{ base: "stretch", md: "center" }}
+              justify="space-between"
+              mb={{ base: 2, md: 4 }}
+              gap={{ base: 2, md: 4 }}
+              w="100%"
+            >
               <Input
                 placeholder="Tìm kiếm thương hiệu..."
                 value={searchTerm}
@@ -194,33 +210,84 @@ const BrandManagement = () => {
                   boxShadow: "0 0 0 1px var(--primary-color)",
                 }}
                 color="black"
-                size={{ base: "sm", md: "md" }} // Kích thước nhỏ hơn trên mobile
+                size={{ base: "sm", md: "md" }}
                 _dark={{
                   color: "white",
                   _placeholder: { color: "white" },
                 }}
+                flex={{ base: "1", md: "0 1 50%" }}
               />
-            </Stack>
+              <HStack
+                spacing={2}
+                flexShrink={0}
+                justify={{ base: "center", md: "flex-end" }}
+              >
+                <Text
+                  fontSize={{ base: "sm", md: "md" }}
+                  whiteSpace="nowrap"
+                  color="gray.600"
+                  _dark={{ color: "gray.300" }} // Đảm bảo màu chữ rõ ràng trong dark mode
+                >
+                  Hiển thị:
+                </Text>
+                <Select
+                  value={itemsPerPage}
+                  onChange={handleItemsPerPageChange}
+                  size={{ base: "sm", md: "md" }}
+                  w={{ base: "100px", md: "120px" }}
+                  borderColor="gray.300"
+                  color="gray.600" // Màu chữ mặc định trong light mode
+                  _dark={{
+                    borderColor: "gray.600",
+                    color: "white", // Màu chữ trắng trong dark mode để rõ ràng
+                    bg: "gray.700", // Nền tối hơn trong dark mode
+                  }}
+                  sx={{
+                    option: {
+                      bg: "white",
+                      color: "gray.600",
+                      _dark: {
+                        bg: "gray.700", // Nền tối hơn trong dark mode
+                        color: "white", // Màu chữ trắng trong dark mode
+                      },
+                    },
+                  }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={20}>20</option>
+                </Select>
+                <Text
+                  fontSize={{ base: "sm", md: "md" }}
+                  whiteSpace="nowrap"
+                  color="gray.600"
+                  _dark={{ color: "gray.300" }} // Đảm bảo màu chữ rõ ràng trong dark mode
+                >
+                  thương hiệu/trang
+                </Text>
+              </HStack>
+            </Flex>
 
             {/* Bảng trên desktop, danh sách trên mobile */}
             <Box
-              overflowX={{ base: "auto", md: "visible" }} // Cuộn ngang trên mobile
+              overflowX={{ base: "auto", md: "visible" }}
               display={{ base: "block", md: "block" }}
-              w="100%" // Đảm bảo chiều rộng 100%
+              w="100%"
             >
               <Table
                 variant="simple"
-                size={{ base: "sm", md: "md" }} // Bảng nhỏ hơn trên mobile
-                display={{ base: "none", md: "table" }} // Ẩn bảng trên mobile
-                w="100%" // Đảm bảo bảng không tràn
+                size={{ base: "sm", md: "md" }}
+                display={{ base: "none", md: "table" }}
+                w="100%"
               >
                 <Thead>
                   <Tr>
-                    <Th w="5%">ID</Th> {/* Giới hạn chiều rộng cột ID */}
-                    <Th w="10%">Tên</Th> {/* Giới hạn chiều rộng cột Tên */}
-                    <Th w="55%">Mô tả</Th> {/* Giới hạn chiều rộng cột Mô tả */}
-                    <Th w="20%">Hình ảnh</Th> {/* Giới hạn chiều rộng cột Hình ảnh */}
-                    <Th w="10%">Thao tác</Th> {/* Giới hạn chiều rộng cột Thao tác */}
+                    <Th w="5%">ID</Th>
+                    <Th w="10%">Tên</Th>
+                    <Th w="55%">Mô tả</Th>
+                    <Th w="20%">Hình ảnh</Th>
+                    <Th w="10%">Thao tác</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -279,8 +346,8 @@ const BrandManagement = () => {
               <VStack
                 spacing={4}
                 align="stretch"
-                display={{ base: "flex", md: "none" }} // Chỉ hiển thị trên mobile
-                w="100%" // Đảm bảo chiều rộng 100%
+                display={{ base: "flex", md: "none" }}
+                w="100%"
               >
                 {paginatedBrands.map((brand) => (
                   <Box
@@ -290,7 +357,7 @@ const BrandManagement = () => {
                     borderRadius="md"
                     bg="white"
                     _dark={{ bg: "gray.800" }}
-                    w="100%" // Đảm bảo chiều rộng 100%
+                    w="100%"
                   >
                     <Flex justify="space-between" align="center">
                       <VStack align="start" spacing={1} w="70%">
@@ -302,12 +369,12 @@ const BrandManagement = () => {
                           hasArrow
                         >
                           <Text
-                            noOfLines={3} // Giới hạn 1 dòng trên mobile để tiết kiệm không gian
+                            noOfLines={3}
                             textOverflow="ellipsis"
                             whiteSpace="normal"
                             wordBreak="break-word"
                             maxW="100%"
-                            fontSize="xs" // Giảm kích thước chữ trên mobile
+                            fontSize="xs"
                           >
                             Mô tả: {brand.description || "Không có mô tả"}
                           </Text>

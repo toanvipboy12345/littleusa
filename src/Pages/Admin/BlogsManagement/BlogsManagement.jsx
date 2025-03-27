@@ -29,6 +29,7 @@ import {
   HStack,
   VStack,
   Text,
+  Select, // Thêm Select từ Chakra UI
 } from "@chakra-ui/react";
 import { Trash2, Edit2, Search, ChevronLeft, ChevronRight } from "react-feather";
 import AddBlog from "./AddBlog";
@@ -40,7 +41,7 @@ const BlogsManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5); // Thay đổi từ const thành state, mặc định là 5
   const toast = useToast();
 
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -78,6 +79,13 @@ const BlogsManagement = () => {
     const value = e.target.value;
     setSearchTerm(value);
     fetchBlogs(value);
+  };
+
+  // Hàm handleItemsPerPageChange: Xử lý khi người dùng thay đổi số lượng hiển thị trên mỗi trang
+  const handleItemsPerPageChange = (e) => {
+    const newItemsPerPage = parseInt(e.target.value);
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset về trang 1 khi thay đổi số lượng item
   };
 
   const handleDeleteOpen = (id) => {
@@ -170,16 +178,37 @@ const BlogsManagement = () => {
       p={{ base: 2, md: 4 }}
       mx="auto"
       maxW={{ base: "100%" }}
+      w="100%" // Đảm bảo chiều rộng đầy đủ
+      overflowX="hidden" // Ngăn tràn ngang
     >
       <Tabs index={activeTab} onChange={(index) => setActiveTab(index)}>
-        <TabList mb={{ base: 2, md: 4 }} flexWrap="wrap">
+        <TabList
+          mb={{ base: 2, md: 4 }}
+          overflowX={{ base: "auto", md: "visible" }}
+          whiteSpace="nowrap"
+          sx={{
+            "::-webkit-scrollbar": {
+              display: "none",
+            },
+            "-ms-overflow-style": "none",
+            "scrollbar-width": "none",
+          }}
+        >
           <Tab fontSize={{ base: "sm", md: "md" }}>Danh sách bài viết</Tab>
           <Tab fontSize={{ base: "sm", md: "md" }}>Thêm bài viết</Tab>
         </TabList>
 
         <TabPanels>
           <TabPanel p={0}>
-            <Stack spacing={{ base: 2, md: 4 }} mb={{ base: 2, md: 4 }}>
+            {/* Đặt tìm kiếm và chọn số lượng hiển thị trên cùng một hàng */}
+            <Flex
+              direction={{ base: "column", md: "row" }}
+              align={{ base: "stretch", md: "center" }}
+              justify="space-between"
+              mb={{ base: 2, md: 4 }}
+              gap={{ base: 2, md: 4 }}
+              w="100%"
+            >
               <Input
                 placeholder="Tìm kiếm bài viết..."
                 value={searchTerm}
@@ -194,29 +223,125 @@ const BlogsManagement = () => {
                 }}
                 color="black"
                 size={{ base: "sm", md: "md" }}
-                _dark={{ color: "white", _placeholder: { color: "white" } }}
+                _dark={{
+                  color: "white",
+                  _placeholder: { color: "white" },
+                }}
+                flex={{ base: "1", md: "0 1 50%" }}
               />
-            </Stack>
+              <HStack
+                spacing={2}
+                flexShrink={0}
+                justify={{ base: "center", md: "flex-end" }}
+              >
+                <Text
+                  fontSize={{ base: "sm", md: "md" }}
+                  whiteSpace="nowrap"
+                  color="gray.600"
+                  _dark={{ color: "gray.300" }}
+                >
+                  Hiển thị:
+                </Text>
+                <Select
+                  value={itemsPerPage}
+                  onChange={handleItemsPerPageChange}
+                  size={{ base: "sm", md: "md" }}
+                  w={{ base: "100px", md: "120px" }}
+                  borderColor="gray.300"
+                  color="gray.600"
+                  _dark={{
+                    borderColor: "gray.600",
+                    color: "white",
+                    bg: "gray.700",
+                  }}
+                  sx={{
+                    option: {
+                      bg: "white",
+                      color: "gray.600",
+                      _dark: {
+                        bg: "gray.700",
+                        color: "white",
+                      },
+                    },
+                  }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={20}>20</option>
+                </Select>
+                <Text
+                  fontSize={{ base: "sm", md: "md" }}
+                  whiteSpace="nowrap"
+                  color="gray.600"
+                  _dark={{ color: "gray.300" }}
+                >
+                  bài viết/trang
+                </Text>
+              </HStack>
+            </Flex>
 
-            <Box overflowX={{ base: "auto", md: "visible" }} display={{ base: "block", md: "block" }}>
+            <Box
+              overflowX={{ base: "auto", md: "visible" }}
+              display={{ base: "block", md: "block" }}
+              w="100%"
+            >
               <Table
                 variant="simple"
                 size={{ base: "sm", md: "md" }}
                 display={{ base: "none", md: "table" }}
+                w="100%"
               >
                 <Thead>
                   <Tr>
-                    <Th>ID</Th>
-                    <Th>Tiêu đề</Th>
-                    <Th>Ảnh đại diện</Th>
-                    <Th>Tác giả</Th>
-                    <Th>Ngày tạo</Th>
-                    <Th>Trạng thái</Th>
-                    <Th>Thao tác</Th>
+                    <Th w="5%">ID</Th>
+                    <Th w="20%">Tiêu đề</Th>
+                    <Th w="15%">Ảnh đại diện</Th>
+                    <Th w="15%">Tác giả</Th>
+                    <Th w="15%">Ngày tạo</Th>
+                    <Th w="15%">Trạng thái</Th>
+                    <Th w="15%">Thao tác</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {paginatedBlogs.map((blog) => (<Tr key={blog.id}><Td>{blog.id}</Td><Td>{blog.title}</Td><Td>{blog.thumbnail ? (<img src={`${BASE_URL}${blog.thumbnail}`} alt="Thumbnail" style={{ maxWidth: "150px" }} />) : ("Không có ảnh")}</Td><Td>{blog.authorUsername}</Td><Td>{formatDate(blog.createdAt)}</Td><Td>{blog.isPublished ? "Đã xuất bản" : "Nháp"}</Td><Td><Flex align="center" gap={2}><IconButton icon={<Edit2 size={{ base: 16, md: 18 }} />} aria-label="Sửa bài viết" onClick={() => handleEditOpen(blog)} variant="outline" size={{ base: "xs", md: "sm" }} /><IconButton icon={<Trash2 size={{ base: 16, md: 18 }} />} aria-label="Xóa bài viết" onClick={() => handleDeleteOpen(blog.id)} variant="outline" size={{ base: "xs", md: "sm" }} /></Flex></Td></Tr>))}
+                  {paginatedBlogs.map((blog) => (
+                    <Tr key={blog.id}>
+                      <Td>{blog.id}</Td>
+                      <Td>{blog.title}</Td>
+                      <Td>
+                        {blog.thumbnail ? (
+                          <img
+                            src={`${BASE_URL}${blog.thumbnail}`}
+                            alt="Thumbnail"
+                            style={{ maxWidth: "150px" }}
+                          />
+                        ) : (
+                          "Không có ảnh"
+                        )}
+                      </Td>
+                      <Td>{blog.authorUsername}</Td>
+                      <Td>{formatDate(blog.createdAt)}</Td>
+                      <Td>{blog.isPublished ? "Đã xuất bản" : "Nháp"}</Td>
+                      <Td>
+                        <Flex align="center" gap={2}>
+                          <IconButton
+                            icon={<Edit2 size={{ base: 16, md: 18 }} />}
+                            aria-label="Sửa bài viết"
+                            onClick={() => handleEditOpen(blog)}
+                            variant="outline"
+                            size={{ base: "xs", md: "sm" }}
+                          />
+                          <IconButton
+                            icon={<Trash2 size={{ base: 16, md: 18 }} />}
+                            aria-label="Xóa bài viết"
+                            onClick={() => handleDeleteOpen(blog.id)}
+                            variant="outline"
+                            size={{ base: "xs", md: "sm" }}
+                          />
+                        </Flex>
+                      </Td>
+                    </Tr>
+                  ))}
                 </Tbody>
               </Table>
 
@@ -224,6 +349,7 @@ const BlogsManagement = () => {
                 spacing={4}
                 align="stretch"
                 display={{ base: "flex", md: "none" }}
+                w="100%"
               >
                 {paginatedBlogs.map((blog) => (
                   <Box
@@ -280,6 +406,7 @@ const BlogsManagement = () => {
                 align="center"
                 mt={{ base: 3, md: 4 }}
                 gap={{ base: 2, md: 0 }}
+                w="100%"
               >
                 <HStack spacing={{ base: 1, md: 2 }}>
                   <IconButton

@@ -6,7 +6,11 @@ import {
   Text,
   VStack,
   Flex,
+  BreadcrumbLink,
+  BreadcrumbItem,
+  Breadcrumb,
 } from "@chakra-ui/react";
+import { Link } from "react-router-dom";
 
 const Brands = () => {
   const [brands, setBrands] = useState([]);
@@ -60,17 +64,19 @@ const Brands = () => {
       mx="auto"
       w={{ base: "95%", md: "90%", lg: "70%" }}
     >
-      {/* <Text
-        fontSize={{ base: "lg", md: "xl" }} 
-        fontWeight="bold"
-        mb={{ base: 4, md: 6 }} 
-        textAlign="center"
-      >
-        Các Thương Hiệu Nổi Bật
-      </Text> */}
 
       {/* Hiển thị danh sách thương hiệu dạng list view */}
       <VStack spacing={{ base: 4, md: 6 }} align="stretch">
+      <Breadcrumb mb={6} px={{ base: 2, md: 8 }} fontSize="sm">
+        <BreadcrumbItem>
+          <BreadcrumbLink as={Link} to="/">
+            Trang chủ
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbItem isCurrentPage>
+          <BreadcrumbLink>Thương hiệu</BreadcrumbLink>
+        </BreadcrumbItem>
+      </Breadcrumb>
         {brands.map((brand, index) => (
           <Box key={brand.id} p={{ base: 2, md: 3 }} w="100%">
             <Flex

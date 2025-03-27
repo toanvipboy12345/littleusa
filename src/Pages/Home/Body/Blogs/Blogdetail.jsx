@@ -7,6 +7,7 @@ import {
     VStack,
     useToast,
     Container,
+    Divider,
     Button,
 } from "@chakra-ui/react";
 import axiosInstance from "../../../../Api/axiosInstance";
@@ -167,8 +168,9 @@ const BlogDetail = () => {
             <Box w={{ base: "100%", md: "80%" }} fontSize="md" lineHeight="tall" mx="auto">
                 {renderContent(blog.content)}
             </Box>
-
+            
         </VStack>
+
         </Box>
     );
 };

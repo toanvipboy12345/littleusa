@@ -106,7 +106,7 @@ const Header = () => {
         transition="height 0.3s ease, opacity 0.3s ease"
       >
         <Flex align="center" justify="center" p="10px" fontWeight="bold" mx="auto" color="white">
-          MIỄN PHÍ VẬN CHUYỂN VỚI ĐƠN HÀNG 700.000₫ - KHÔNG ÁP DỤNG ĐƠN SALE
+          MIỄN PHÍ VẬN CHUYỂN VỚI ĐƠN HÀNG TỪ 1.000.000₫
         </Flex>
       </Box>
 

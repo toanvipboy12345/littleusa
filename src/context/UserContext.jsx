@@ -127,7 +127,7 @@ export const UserProvider = ({ children }) => {
       const { user } = response.data;
       localStorage.setItem("user", JSON.stringify(user));
       setUser(user);
-
+      console.log(user);
       // Hợp nhất wishlist nếu có wishlistToken
       const wishlistToken = localStorage.getItem("wishlistToken");
       if (wishlistToken) {
