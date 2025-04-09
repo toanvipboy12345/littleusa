@@ -15,13 +15,8 @@ import { Phone, Mail, MapPin } from "react-feather"; // Thêm MapPin từ react-
 
 const About = () => {
   return (
-    <Box
-      py={{ base: 4, md: 8, lg: 12 }}
-      px={{ base: 2, md: 4, lg: 6 }}
-      mx="auto"
-      maxW="1200px"
-      bg="gray.50"
-    >
+    <Box py={{ base: 4, md: 8, lg: 20 }} px={{ base: 2, md: 4, lg: 8 }} mx="auto" w={{ base: "95%", md: "90%", lg: "80%" }}>
+
       {/* Breadcrumb */}
       <Breadcrumb mb={6} fontSize="sm">
         <BreadcrumbItem>

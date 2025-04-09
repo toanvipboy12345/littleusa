@@ -27,33 +27,33 @@ import {
   Select,
   InputGroup,
   InputLeftElement,
+  HStack,
 } from "@chakra-ui/react";
 import { Search, ChevronLeft, ChevronRight, Eye, Check } from "react-feather";
 import { useDisclosure } from "@chakra-ui/react";
 
 const OrderManagement = () => {
-  const [orders, setOrders] = useState([]); // Danh sách đơn hàng đã lọc
-  const [allOrders, setAllOrders] = useState([]); // Danh sách toàn bộ đơn hàng ban đầu
+  const [orders, setOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const toast = useToast();
 
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [statusUpdates, setStatusUpdates] = useState({}); // Lưu trạng thái mới cho từng đơn hàng
+  const [statusUpdates, setStatusUpdates] = useState({});
 
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  // Hàm fetchOrders: Lấy toàn bộ danh sách đơn hàng từ API
   const fetchOrders = async () => {
     try {
       const response = await axiosInstance.get("/api/orders");
       if (response.data && Array.isArray(response.data)) {
         setOrders(response.data);
-        setAllOrders(response.data); // Lưu bản sao ban đầu
+        setAllOrders(response.data);
       } else {
         setOrders([]);
         setAllOrders([]);
@@ -80,18 +80,17 @@ const OrderManagement = () => {
     }
   };
 
-  // Hàm handleSearch: Lọc danh sách đơn hàng phía client
   const handleSearch = (e) => {
-    const value = e.target.value.trim().toLowerCase(); // Chuyển thành chữ thường để không phân biệt hoa thường
+    const value = e.target.value.trim().toLowerCase();
     setSearchTerm(value);
 
     if (value === "") {
-      setOrders(allOrders); // Nếu ô tìm kiếm trống, hiển thị toàn bộ danh sách
+      setOrders(allOrders);
     } else {
       const filteredOrders = allOrders.filter((order) =>
         order.orderId.toLowerCase().includes(value)
       );
-      setOrders(filteredOrders); // Cập nhật danh sách với kết quả lọc
+      setOrders(filteredOrders);
       if (filteredOrders.length === 0) {
         toast({
           title: "Cảnh báo",
@@ -102,10 +101,16 @@ const OrderManagement = () => {
         });
       }
     }
-    setCurrentPage(1); // Reset về trang đầu tiên khi tìm kiếm
+    setCurrentPage(1);
   };
 
-  // Hàm chuyển đổi trạng thái sang tiếng Việt
+  const handleItemsPerPageChange = (e) => {
+    const newItemsPerPage = parseInt(e.target.value);
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
+  // Hàm chuyển đổi trạng thái đơn hàng sang tiếng Việt
   const getStatusText = (status) => {
     switch (status) {
       case "PENDING":
@@ -123,82 +128,89 @@ const OrderManagement = () => {
     }
   };
 
-  // Hàm cập nhật trạng thái đơn hàng
-// Hàm cập nhật trạng thái đơn hàng
-const handleUpdateStatus = async (orderId) => {
-  const newStatus = statusUpdates[orderId];
-  if (!["SHIPPED", "DELIVERED"].includes(newStatus)) {
-    toast({
-      title: "Lỗi",
-      description: "Admin chỉ được cập nhật trạng thái thành SHIPPED hoặc DELIVERED.",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-      position: "top-right",
-    });
-    return;
-  }
-  try {
-    const response = await axiosInstance.put(`/api/orders/${orderId}/status`, {
-      status: newStatus,
-    });
-    const updatedOrder = { ...orders.find((order) => order.orderId === orderId), status: response.data.status };
-    setOrders(
-      orders.map((order) =>
-        order.orderId === orderId ? updatedOrder : order
-      )
-    );
-    setAllOrders(
-      allOrders.map((order) =>
-        order.orderId === orderId ? updatedOrder : order
-      )
-    ); // Cập nhật cả danh sách ban đầu
-    setStatusUpdates((prev) => {
-      const updated = { ...prev };
-      delete updated[orderId];
-      return updated;
-    });
-    toast({
-      title: "Thành công",
-      description: "Đã cập nhật trạng thái đơn hàng.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-      position: "top-right",
-    });
-  } catch (error) {
-    toast({
-      title: "Lỗi",
-      // Sử dụng customMessage nếu có (từ interceptor 403), nếu không thì dùng message mặc định
-      description: error.customMessage || error.response?.data?.message || "Không thể cập nhật trạng thái đơn hàng.",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-      position: "top-right",
-    });
-  }
-};
+  // Hàm chuyển đổi trạng thái thanh toán sang tiếng Việt
+  const getPaymentStatusText = (paymentStatus) => {
+    switch (paymentStatus) {
+      case "PENDING":
+        return "Đang chờ thanh toán";
+      case "SUCCESS":
+        return "Thanh toán thành công";
+      case "FAILED":
+        return "Thanh toán thất bại";
+      default:
+        return paymentStatus || "N/A";
+    }
+  };
 
-  // Hàm mở dialog chi tiết đơn hàng
+  const handleUpdateStatus = async (orderId) => {
+    const newStatus = statusUpdates[orderId];
+    if (!["SHIPPED", "DELIVERED"].includes(newStatus)) {
+      toast({
+        title: "Lỗi",
+        description: "Admin chỉ được cập nhật trạng thái thành SHIPPED hoặc DELIVERED.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+      return;
+    }
+    try {
+      const response = await axiosInstance.put(`/api/orders/${orderId}/status`, {
+        status: newStatus,
+      });
+      const updatedOrder = { ...orders.find((order) => order.orderId === orderId), status: response.data.status };
+      setOrders(
+        orders.map((order) =>
+          order.orderId === orderId ? updatedOrder : order
+        )
+      );
+      setAllOrders(
+        allOrders.map((order) =>
+          order.orderId === orderId ? updatedOrder : order
+        )
+      );
+      setStatusUpdates((prev) => {
+        const updated = { ...prev };
+        delete updated[orderId];
+        return updated;
+      });
+      toast({
+        title: "Thành công",
+        description: "Đã cập nhật trạng thái đơn hàng.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error.customMessage || error.response?.data?.message || "Không thể cập nhật trạng thái đơn hàng.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+  };
+
   const handleDetailOpen = (order) => {
     setSelectedOrder(order);
     onDetailOpen();
   };
 
-  // Logic phân trang
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const paginatedOrders = orders.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(orders.length / itemsPerPage);
 
-  // Hàm chuyển sang trang tiếp theo
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
   };
 
-  // Hàm quay lại trang trước
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
@@ -214,29 +226,87 @@ const handleUpdateStatus = async (orderId) => {
       overflowX="hidden"
     >
       <Stack spacing={{ base: 2, md: 4 }} mb={{ base: 2, md: 4 }}>
-        <InputGroup>
-          <InputLeftElement pointerEvents="none">
-            <Search size={20} color="gray.500" />
-          </InputLeftElement>
-          <Input
-            placeholder="Tìm kiếm đơn hàng theo mã..."
-            value={searchTerm}
-            onChange={handleSearch}
-            variant="outline"
-            borderColor="gray.300"
-            _hover={{ borderColor: "gray.500" }}
-            _focus={{
-              borderColor: "gray.500",
-              boxShadow: "0 0 0 1px gray.500",
-            }}
-            color="black"
-            size={{ base: "sm", md: "md" }}
-            _dark={{
-              color: "white",
-              _placeholder: { color: "white" },
-            }}
-          />
-        </InputGroup>
+        <Flex
+          direction={{ base: "column", md: "row" }}
+          align={{ base: "stretch", md: "center" }}
+          justify="space-between"
+          gap={{ base: 2, md: 4 }}
+          w="100%"
+        >
+          <InputGroup flex={{ base: "1", md: "0 1 50%" }}>
+            <InputLeftElement pointerEvents="none">
+              <Search size={20} color="gray.500" />
+            </InputLeftElement>
+            <Input
+              placeholder="Tìm kiếm đơn hàng theo mã..."
+              value={searchTerm}
+              onChange={handleSearch}
+              variant="outline"
+              borderColor="gray.300"
+              _hover={{ borderColor: "gray.500" }}
+              _focus={{
+                borderColor: "gray.500",
+                boxShadow: "0 0 0 1px gray.500",
+              }}
+              color="black"
+              size={{ base: "sm", md: "md" }}
+              _dark={{
+                color: "white",
+                _placeholder: { color: "white" },
+              }}
+            />
+          </InputGroup>
+          <HStack
+            spacing={2}
+            flexShrink={0}
+            justify={{ base: "center", md: "flex-end" }}
+          >
+            <Text
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="nowrap"
+              color="gray.600"
+              _dark={{ color: "gray.300" }}
+            >
+              Hiển thị:
+            </Text>
+            <Select
+              value={itemsPerPage}
+              onChange={handleItemsPerPageChange}
+              size={{ base: "sm", md: "md" }}
+              w={{ base: "100px", md: "120px" }}
+              borderColor="gray.300"
+              color="gray.600"
+              _dark={{
+                borderColor: "gray.600",
+                color: "white",
+                bg: "gray.700",
+              }}
+              sx={{
+                option: {
+                  bg: "white",
+                  color: "gray.600",
+                  _dark: {
+                    bg: "gray.700",
+                    color: "white",
+                  },
+                },
+              }}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+            </Select>
+            <Text
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="nowrap"
+              color="gray.600"
+              _dark={{ color: "gray.300" }}
+            >
+              đơn hàng/trang
+            </Text>
+          </HStack>
+        </Flex>
       </Stack>
 
       <Box
@@ -244,7 +314,6 @@ const handleUpdateStatus = async (orderId) => {
         display={{ base: "block", md: "block" }}
         w="100%"
       >
-        {/* Bảng hiển thị trên desktop */}
         <Table
           variant="simple"
           size={{ base: "sm", md: "md" }}
@@ -317,7 +386,6 @@ const handleUpdateStatus = async (orderId) => {
           </Tbody>
         </Table>
 
-        {/* Hiển thị dạng danh sách trên mobile */}
         <Box display={{ base: "block", md: "none" }} w="100%">
           {paginatedOrders.map((order) => (
             <Box
@@ -403,7 +471,6 @@ const handleUpdateStatus = async (orderId) => {
         </Box>
       </Box>
 
-      {/* Phân trang */}
       <Flex
         direction={{ base: "column", md: "row" }}
         justify={{ base: "center", md: "space-between" }}
@@ -514,7 +581,7 @@ const handleUpdateStatus = async (orderId) => {
                       Trạng thái thanh toán:
                     </Text>
                     <Input
-                      value={selectedOrder.paymentStatus || "N/A"}
+                      value={getPaymentStatusText(selectedOrder.paymentStatus)}
                       isReadOnly
                       size={{ base: "sm", md: "md" }}
                       fontSize={{ base: "sm", md: "md" }}
@@ -528,7 +595,6 @@ const handleUpdateStatus = async (orderId) => {
                       <Thead>
                         <Tr>
                           <Th>Tên sản phẩm</Th>
-                         
                           <Th>Màu sắc</Th>
                           <Th>Kích thước</Th>
                           <Th>Số lượng</Th>
@@ -539,9 +605,8 @@ const handleUpdateStatus = async (orderId) => {
                         {selectedOrder.items.map((item, index) => (
                           <Tr key={index}>
                             <Td fontSize={{ base: "xs", md: "sm" }}>
-                              {item.productName} - {item.variantColor}
+                              {item.productName}
                             </Td>
-                            
                             <Td fontSize={{ base: "xs", md: "sm" }}>{item.variantColor}</Td>
                             <Td fontSize={{ base: "xs", md: "sm" }}>{item.size}</Td>
                             <Td fontSize={{ base: "xs", md: "sm" }}>{item.quantity}</Td>

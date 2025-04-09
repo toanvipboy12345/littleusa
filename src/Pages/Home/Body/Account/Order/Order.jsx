@@ -30,6 +30,9 @@ import {
   AlertDialogOverlay,
   AlertDialogFooter,
   Grid,
+  Input,
+  FormControl,
+  FormLabel,
 } from "@chakra-ui/react";
 import { useCart } from "../../../../../context/CartContext";
 import { UserContext } from "../../../../../context/UserContext";
@@ -41,6 +44,7 @@ const Order = () => {
   const [loading, setLoading] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [phoneNumber, setPhoneNumber] = useState(""); // State để lưu số điện thoại nhập vào
   const toast = useToast();
   const cancelRef = useRef();
 
@@ -65,15 +69,52 @@ const Order = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.get(
-        user?.id ? `/api/orders/user/${user.id}` : `/api/orders/cart-token/${cartToken}`
-      );
-      setOrders(response.data || []);
+      const response = await axiosInstance.get(`/api/orders/user/${user.id}`);
+      setOrders(response?.data || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast({
         title: "Lỗi",
         description: "Không thể tải danh sách đơn hàng.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOrdersByPhone = async () => {
+    if (!phoneNumber.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập số điện thoại để tra cứu.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get(`/api/orders/phone/${phoneNumber}`);
+      setOrders(response.data || []);
+      if (response.data.length === 0) {
+        toast({
+          title: "Thông báo",
+          description: "Không tìm thấy đơn hàng nào với số điện thoại này.",
+          status: "info",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching orders by phone:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tra cứu đơn hàng. Vui lòng thử lại.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -127,7 +168,7 @@ const Order = () => {
 
   const getActiveStep = (status) => {
     const stepIndex = steps.findIndex((step) => step.status === status);
-    return stepIndex >= 0 ? stepIndex : 0; // Trả về chỉ số của trạng thái hiện tại
+    return stepIndex >= 0 ? stepIndex : 0;
   };
 
   const isStepComplete = (stepIndex, currentStatus) => {
@@ -136,19 +177,43 @@ const Order = () => {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, [user, cartToken]);
+    if (user) {
+      fetchOrders();
+    }
+  }, [user]);
 
   const baseURL = "http://localhost:8080";
 
   return (
     <Box px={{ base: 4, md: 6 }} py={{ base: 6, md: 10 }} maxW="1200px" mx="auto">
-      
+      {!user ? (
+        <Box>
+          <Text fontSize="xl" fontWeight="bold" mb={4}>
+            Tra cứu đơn hàng
+          </Text>
+          <FormControl mb={4}>
+            <FormLabel>Nhập số điện thoại</FormLabel>
+            <Flex gap={2}>
+              <Input
+                placeholder="Ví dụ: 0123456789"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                maxLength={15}
+              />
+              <Button onClick={fetchOrdersByPhone} isLoading={loading}>
+                Tra cứu
+              </Button>
+            </Flex>
+          </FormControl>
+        </Box>
+      ) : null}
 
       {loading ? (
         <Text textAlign="center" color="gray.500">Đang tải...</Text>
       ) : orders.length === 0 ? (
-        <Text textAlign="center" color="gray.500">Bạn chưa có đơn hàng nào.</Text>
+        <Text textAlign="center" color="gray.500">
+          {user ? "Bạn chưa có đơn hàng nào." : "Không tìm thấy đơn hàng nào."}
+        </Text>
       ) : (
         <Accordion allowMultiple>
           {orders.map((order) => (
@@ -190,7 +255,6 @@ const Order = () => {
                         order.status !== "CANCELLED" && (
                           <Button
                             size="sm"
-                            
                             variant="solid"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -204,7 +268,6 @@ const Order = () => {
                     </HStack>
                   </Flex>
                   <Box w="100%">
-                    
                     <Grid
                       templateColumns={{ base: "1fr", md: "1fr", lg: "repeat(2, 1fr)" }}
                       gap={{ base: 3, md: 4 }}
@@ -230,7 +293,7 @@ const Order = () => {
                               fontSize={{ base: "sm", md: "md" }}
                               textAlign="left"
                             >
-                              {item.productName} - {item.variantColor}
+                              {item.productName} - {item.color}
                             </Text>
                             <Text fontSize={{ base: "xs", md: "sm" }} color="gray.600" textAlign="left">
                               Kích thước: {item.size}
@@ -285,17 +348,11 @@ const Order = () => {
                       gap={2}
                       fontSize={{ base: "sm", md: "md" }}
                     >
-                      <Text>
-                        Tên: {order.customerName}
-                      </Text>
+                      <Text>Tên: {order.customerName}</Text>
                       <Text mx={2}>|</Text>
-                      <Text>
-                        Email: {order.email}
-                      </Text>
+                      <Text>Email: {order.email}</Text>
                       <Text mx={2}>|</Text>
-                      <Text>
-                        Số điện thoại: {order.phoneNumber}
-                      </Text>
+                      <Text>Số điện thoại: {order.phoneNumber}</Text>
                     </Flex>
                   </Box>
                   <Box>
@@ -352,7 +409,7 @@ const Order = () => {
               <Button ref={cancelRef} onClick={closeCancelDialog}>
                 Không
               </Button>
-              <Button  onClick={confirmCancelOrder} ml={3}>
+              <Button onClick={confirmCancelOrder} ml={3}>
                 Có
               </Button>
             </AlertDialogFooter>

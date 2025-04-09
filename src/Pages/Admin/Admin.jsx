@@ -15,6 +15,7 @@ import Dashboard from "../Admin/stats/Dashboard";
 import Statistics from "../Admin/Stats/Statistics";
 import Notifications from "../Admin/NotificationsManagement/Notifications";
 import BlogsManagement from "../Admin/BlogsManagement/BlogsManagement";
+import AdminSettings from "./AdminSettings";
 import {
   Box,
   Flex,
@@ -31,12 +32,16 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  useDisclosure,
 } from "@chakra-ui/react";
 import {
   BarChart2,
   Users,
   ShoppingCart,
-  Bell,
   Sun,
   Moon,
   Search,
@@ -53,6 +58,9 @@ import {
   PlusSquare,
   List,
   UserCheck,
+  Menu,
+  Bell,
+  Settings, // Biểu tượng Settings
 } from "react-feather";
 
 const Admin = () => {
@@ -61,6 +69,7 @@ const Admin = () => {
   const [activeMenu, setActiveMenu] = useState("dashboard");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const { colorMode, toggleColorMode } = useColorMode();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
     const titles = {
@@ -78,6 +87,7 @@ const Admin = () => {
       addPurchaseOrder: "Nhập hàng",
       purchaseOrders: "Danh sách hóa đơn",
       blogs: "Quản lý bài viết",
+      settings: "Cài đặt",
     };
     document.title = titles[activeMenu] || "Admin - Dashboard";
   }, [activeMenu]);
@@ -91,9 +101,7 @@ const Admin = () => {
   const renderContent = () => {
     switch (activeMenu) {
       case "dashboard":
-        return <Box><Dashboard /></Box>;
-      case "products":
-        return <Box><ProductManagement /></Box>;
+        return <Box><Dashboard setActiveMenu={setActiveMenu} /></Box>;
       case "suppliers":
         return <Box><SupplierManagement /></Box>;
       case "users":
@@ -106,6 +114,8 @@ const Admin = () => {
         return <Box><Notifications /></Box>;
       case "brands":
         return <Box><BrandManagement /></Box>;
+      case "products":
+        return <Box><ProductManagement /></Box>;
       case "categories":
         return <Box><CategoryManagement /></Box>;
       case "coupons":
@@ -118,6 +128,8 @@ const Admin = () => {
         return <Box><PurchaseOrderManagement /></Box>;
       case "blogs":
         return <Box><BlogsManagement /></Box>;
+      case "settings":
+        return <Box><AdminSettings /></Box>;
       default:
         return <Box>Dashboard Document</Box>;
     }
@@ -125,6 +137,7 @@ const Admin = () => {
 
   const handleMenuClick = (menu) => {
     setActiveMenu(menu);
+    onClose();
   };
 
   const renderMenuItem = (menuKey, label, icon, isLogout = false) => (
@@ -149,7 +162,6 @@ const Admin = () => {
         bg: activeMenu === menuKey ? "gray.700" : "transparent",
       }}
       _hover={{ bg: "gray.100", transform: "scale(1.02)", transition: "transform 0.2s ease" }}
-      transition="background 0.5s ease, color 0.5s ease, border-color 0.5s ease" // Transition cho dark/light mode
     >
       {isSidebarCollapsed ? icon : label}
     </Button>
@@ -172,9 +184,57 @@ const Admin = () => {
         bg: activeMenu === menuKey ? "gray.700" : "transparent",
       }}
       _hover={{ bg: "gray.100", transform: "scale(1.02)", transition: "transform 0.2s ease" }}
-      transition="background 0.5s ease, color 0.5s ease, border-color 0.5s ease" // Transition cho dark/light mode
     >
       {isSidebarCollapsed ? null : label}
+    </Button>
+  );
+
+  const renderDrawerMenuItem = (menuKey, label, icon, isLogout = false) => (
+    <Button
+      onClick={() => {
+        if (isLogout) {
+          handleLogout();
+        }
+        handleMenuClick(menuKey);
+      }}
+      w="full"
+      justifyContent="start"
+      borderRadius={0}
+      px={4}
+      py={6}
+      leftIcon={icon}
+      borderLeft={activeMenu === menuKey ? "4px solid var(--primary-color)" : "none"}
+      bg={activeMenu === menuKey ? "gray.100" : "transparent"}
+      color={activeMenu === menuKey ? "primary.500" : isLogout ? "red.500" : "gray.600"}
+      _dark={{
+        color: activeMenu === menuKey ? "white" : isLogout ? "red.400" : "gray.300",
+        bg: activeMenu === menuKey ? "gray.700" : "transparent",
+      }}
+      _hover={{ bg: "gray.100", transform: "scale(1.02)", transition: "transform 0.2s ease" }}
+    >
+      {label}
+    </Button>
+  );
+
+  const renderDrawerSubMenuItem = (menuKey, label, icon) => (
+    <Button
+      onClick={() => handleMenuClick(menuKey)}
+      w="full"
+      justifyContent="start"
+      borderRadius={0}
+      px={4}
+      py={6}
+      leftIcon={icon}
+      borderLeft={activeMenu === menuKey ? "4px solid var(--primary-color)" : "none"}
+      bg={activeMenu === menuKey ? "gray.100" : "transparent"}
+      color={activeMenu === menuKey ? "primary.500" : "gray.600"}
+      _dark={{
+        color: activeMenu === menuKey ? "white" : "gray.300",
+        bg: activeMenu === menuKey ? "gray.700" : "transparent",
+      }}
+      _hover={{ bg: "gray.100", transform: "scale(1.02)", transition: "transform 0.2s ease" }}
+    >
+      {label}
     </Button>
   );
 
@@ -184,17 +244,18 @@ const Admin = () => {
       bg="gray.50"
       color="gray.800"
       _dark={{ bg: "gray.900", color: "white" }}
-      transition="background 0.5s ease, color 0.5s ease" // Transition cho dark/light mode
+      transition="background 3s ease, color 3s ease"
     >
-      {/* Sidebar */}
+      {/* Sidebar cho desktop */}
       <Box
+        display={{ base: "none", md: "block" }}
         w={isSidebarCollapsed ? "60px" : "250px"}
         minH="100vh"
         bg="white"
         borderRight="1px"
         borderColor="gray.200"
         _dark={{ bg: "gray.800", borderColor: "gray.700" }}
-        transition="width 0.3s ease-in-out, background 0.5s ease, border-color 0.5s ease" // Transition cho sidebar và dark/light mode
+        transition="width 0.3s ease-in-out, background 0.5s ease, border-color 0.5s ease"
         overflow="hidden"
         position="fixed"
         zIndex={1000}
@@ -207,7 +268,7 @@ const Admin = () => {
               color="gray.800"
               _dark={{ color: "white" }}
               display={isSidebarCollapsed ? "none" : "block"}
-              transition="color 0.5s ease" // Transition cho dark/light mode
+              transition="color 0.5s ease"
             >
               ADMIN
             </Text>
@@ -215,21 +276,13 @@ const Admin = () => {
               icon={isSidebarCollapsed ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
               aria-label="Toggle Sidebar"
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              variant="outline"
-              borderColor="gray.300"
-              color="gray.600"
+              variant="solid"
               _dark={{ borderColor: "gray.600", color: "gray.300", _hover: { bg: "gray.700" } }}
-              _hover={{ bg: "gray.100" }}
-              transition="background 0.5s ease, color 0.5s ease, border-color 0.5s ease" // Transition cho dark/light mode
             />
           </Flex>
 
-          {/* Menu items with Accordion */}
           <Accordion allowMultiple>
-            {/* Dashboard */}
             {renderMenuItem("dashboard", "Dashboard", <BarChart2 size={20} />)}
-
-            {/* Nhóm Quản lý sản phẩm */}
             <AccordionItem border="none">
               <AccordionButton px={isSidebarCollapsed ? 0 : 4} py={6}>
                 {isSidebarCollapsed ? (
@@ -247,8 +300,6 @@ const Admin = () => {
                 {renderSubMenuItem("categories", "Danh mục", <Folder size={20} />)}
               </AccordionPanel>
             </AccordionItem>
-
-            {/* Nhóm Nhập hàng */}
             <AccordionItem border="none">
               <AccordionButton px={isSidebarCollapsed ? 0 : 4} py={6}>
                 {isSidebarCollapsed ? (
@@ -266,8 +317,6 @@ const Admin = () => {
                 {renderSubMenuItem("purchaseOrders", "Hóa đơn nhập hàng", <List size={20} />)}
               </AccordionPanel>
             </AccordionItem>
-
-            {/* Nhóm Đơn hàng & Vận chuyển */}
             <AccordionItem border="none">
               <AccordionButton px={isSidebarCollapsed ? 0 : 4} py={6}>
                 {isSidebarCollapsed ? (
@@ -285,8 +334,6 @@ const Admin = () => {
                 {renderSubMenuItem("coupons", "Mã giảm giá", <Percent size={20} />)}
               </AccordionPanel>
             </AccordionItem>
-
-            {/* Nhóm Người dùng & Nội dung */}
             <AccordionItem border="none">
               <AccordionButton px={isSidebarCollapsed ? 0 : 4} py={6}>
                 {isSidebarCollapsed ? (
@@ -304,8 +351,6 @@ const Admin = () => {
                 {renderSubMenuItem("notifications", "Thông báo", <Bell size={20} />)}
               </AccordionPanel>
             </AccordionItem>
-
-            {/* Nhóm Thống kê */}
             <AccordionItem border="none">
               <AccordionButton px={isSidebarCollapsed ? 0 : 4} py={6}>
                 {isSidebarCollapsed ? (
@@ -321,19 +366,115 @@ const Admin = () => {
                 {renderSubMenuItem("statistics", "Thống kê", <Activity size={20} />)}
               </AccordionPanel>
             </AccordionItem>
-
-            {/* Đăng xuất */}
             {renderMenuItem("logout", "Đăng xuất", <LogOut size={20} />, true)}
           </Accordion>
         </VStack>
       </Box>
 
+      {/* Drawer cho mobile */}
+      <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
+        <DrawerOverlay />
+        <DrawerContent
+          w="250px"
+          h="100vh"
+          bg="white"
+          borderRight="1px"
+          borderColor="gray.200"
+          _dark={{ bg: "gray.800", borderColor: "gray.700" }}
+          transition="background 0.5s ease, border-color 0.5s ease"
+          overflow="hidden"
+        >
+          <DrawerCloseButton />
+          <VStack align="stretch" spacing={0} p={4}>
+            <Flex justify="space-between" align="center" mb={4}>
+              <Text
+                fontSize="xl"
+                fontWeight="bold"
+                color="gray.800"
+                _dark={{ color: "white" }}
+                transition="color 0.5s ease"
+              >
+                ADMIN
+              </Text>
+            </Flex>
+
+            <Accordion allowMultiple>
+              {renderDrawerMenuItem("dashboard", "Dashboard", <BarChart2 size={20} />)}
+              <AccordionItem border="none">
+                <AccordionButton px={4} py={6}>
+                  <Box flex="1" textAlign="left" fontWeight="bold" color="gray.600" _dark={{ color: "gray.300" }}>
+                    Quản lý sản phẩm
+                  </Box>
+                  <AccordionIcon />
+                </AccordionButton>
+                <AccordionPanel pb={0} px={6}>
+                  {renderDrawerSubMenuItem("products", "Sản phẩm", <Package size={20} />)}
+                  {renderDrawerSubMenuItem("brands", "Thương hiệu", <Tag size={20} />)}
+                  {renderDrawerSubMenuItem("categories", "Danh mục", <Folder size={20} />)}
+                </AccordionPanel>
+              </AccordionItem>
+              <AccordionItem border="none">
+                <AccordionButton px={4} py={6}>
+                  <Box flex="1" textAlign="left" fontWeight="bold" color="gray.600" _dark={{ color: "gray.300" }}>
+                    Nhập hàng
+                  </Box>
+                  <AccordionIcon />
+                </AccordionButton>
+                <AccordionPanel pb={0} px={6}>
+                  {renderDrawerSubMenuItem("suppliers", "Nhà cung cấp", <UserCheck size={20} />)}
+                  {renderDrawerSubMenuItem("addPurchaseOrder", "Nhập hàng", <PlusSquare size={20} />)}
+                  {renderDrawerSubMenuItem("purchaseOrders", "Hóa đơn nhập hàng", <List size={20} />)}
+                </AccordionPanel>
+              </AccordionItem>
+              <AccordionItem border="none">
+                <AccordionButton px={4} py={6}>
+                  <Box flex="1" textAlign="left" fontWeight="bold" color="gray.600" _dark={{ color: "gray.300" }}>
+                    Đơn hàng & Vận chuyển
+                  </Box>
+                  <AccordionIcon />
+                </AccordionButton>
+                <AccordionPanel pb={0} px={6}>
+                  {renderDrawerSubMenuItem("orders", "Đơn hàng", <ShoppingCart size={20} />)}
+                  {renderDrawerSubMenuItem("shippingMethods", "Vận chuyển", <Truck size={20} />)}
+                  {renderDrawerSubMenuItem("coupons", "Mã giảm giá", <Percent size={20} />)}
+                </AccordionPanel>
+              </AccordionItem>
+              <AccordionItem border="none">
+                <AccordionButton px={4} py={6}>
+                  <Box flex="1" textAlign="left" fontWeight="bold" color="gray.600" _dark={{ color: "gray.300" }}>
+                    Người dùng & Nội dung
+                  </Box>
+                  <AccordionIcon />
+                </AccordionButton>
+                <AccordionPanel pb={0} px={6}>
+                  {renderDrawerSubMenuItem("users", "Người dùng", <Users size={20} />)}
+                  {renderDrawerSubMenuItem("blogs", "Bài viết", <File size={20} />)}
+                  {renderDrawerSubMenuItem("notifications", "Thông báo", <Bell size={20} />)}
+                </AccordionPanel>
+              </AccordionItem>
+              <AccordionItem border="none">
+                <AccordionButton px={4} py={6}>
+                  <Box flex="1" textAlign="left" fontWeight="bold" color="gray.600" _dark={{ color: "gray.300" }}>
+                    Thống kê
+                  </Box>
+                  <AccordionIcon />
+                </AccordionButton>
+                <AccordionPanel pb={0} px={6}>
+                  {renderDrawerSubMenuItem("statistics", "Thống kê", <Activity size={20} />)}
+                </AccordionPanel>
+              </AccordionItem>
+              {renderDrawerMenuItem("logout", "Đăng xuất", <LogOut size={20} />, true)}
+            </Accordion>
+          </VStack>
+        </DrawerContent>
+      </Drawer>
+
       {/* Main content */}
       <Flex
         flex="1"
         direction="column"
-        ml={isSidebarCollapsed ? "60px" : "250px"}
-        transition="margin 0.3s ease-in-out" // Transition cho sidebar
+        ml={{ base: 0, md: isSidebarCollapsed ? "60px" : "250px" }}
+        transition="margin 0.3s ease-in-out"
       >
         {/* Header */}
         <Flex
@@ -348,17 +489,15 @@ const Admin = () => {
           bg="white"
           _dark={{ borderColor: "gray.700", bg: "gray.800" }}
           zIndex={999}
-          transition="background 0.5s ease, border-color 0.5s ease" // Transition cho dark/light mode
         >
           <IconButton
-            icon={<BarChart2 size={20} />}
-            aria-label="Toggle Sidebar"
+            icon={<Menu size={20} />}
+            aria-label="Open Menu"
             display={{ base: "inline-flex", md: "none" }}
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            onClick={onOpen}
             variant="ghost"
             color="gray.600"
             _dark={{ color: "gray.300" }}
-            transition="color 0.5s ease" // Transition cho dark/light mode
           />
           <Flex align="center" gap={2}>
             <IconButton
@@ -367,13 +506,8 @@ const Admin = () => {
               variant="ghost"
               color="gray.600"
               _dark={{ color: "gray.300" }}
-              transition="color 0.5s ease" // Transition cho dark/light mode
             />
-            <Text
-              fontWeight="bold"
-              mr={2}
-              transition="color 0.5s ease" // Transition cho dark/light mode
-            >
+            <Text fontWeight="bold" mr={2}>
               {user?.firstName || "Admin"}
             </Text>
           </Flex>
@@ -388,32 +522,17 @@ const Admin = () => {
                 borderColor="gray.300"
                 _dark={{ borderColor: "gray.600" }}
                 _focus={{ borderColor: "primary.500", boxShadow: "0 0 0 1px var(--primary-color)" }}
-                transition="border-color 0.5s ease" // Transition cho dark/light mode
               />
             </InputGroup>
             <IconButton
-              icon={<Bell size={20} />}
-              aria-label="Notifications"
+              icon={<Settings size={20} />}
+              aria-label="Settings"
               variant="ghost"
               color="gray.600"
               _dark={{ color: "gray.300" }}
               position="relative"
-              transition="color 0.5s ease" // Transition cho dark/light mode
-            >
-              <Box
-                position="absolute"
-                top="-8px"
-                right="-8px"
-                bg="red.500"
-                color="white"
-                borderRadius="full"
-                px={2}
-                fontSize="xs"
-                transition="background 0.5s ease, color 0.5s ease" // Transition cho dark/light mode
-              >
-                3+
-              </Box>
-            </IconButton>
+              onClick={() => setActiveMenu("settings")}
+            />
             <IconButton
               icon={colorMode === "light" ? <Sun size={20} /> : <Moon size={20} />}
               aria-label="Toggle Dark Mode"
@@ -421,7 +540,6 @@ const Admin = () => {
               variant="ghost"
               color="gray.600"
               _dark={{ color: "gray.300" }}
-              transition="color 0.5s ease" // Transition cho dark/light mode
             />
           </Flex>
         </Flex>
@@ -433,7 +551,6 @@ const Admin = () => {
           overflowY="auto"
           bg="gray.50"
           _dark={{ bg: "gray.900" }}
-          transition="background 0.5s ease" // Transition cho dark/light mode
         >
           {renderContent()}
         </Box>

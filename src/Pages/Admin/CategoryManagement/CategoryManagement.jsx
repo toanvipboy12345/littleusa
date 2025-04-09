@@ -29,7 +29,7 @@ import {
   HStack,
   VStack,
   Text,
-  Select, // Thêm Select từ Chakra UI
+  Select,
 } from "@chakra-ui/react";
 import { Trash2, Edit2, Search, ChevronLeft, ChevronRight } from "react-feather";
 import AddCategory from "./AddCategory";
@@ -41,7 +41,7 @@ const CategoryManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5); // Thay đổi từ const thành state, mặc định là 5
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const toast = useToast();
 
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -54,7 +54,6 @@ const CategoryManagement = () => {
     fetchCategories();
   }, []);
 
-  // Hàm fetchCategories: Lấy danh sách danh mục từ API, hỗ trợ tìm kiếm theo tên
   const fetchCategories = async (search = "") => {
     try {
       const response = await axiosInstance.get(
@@ -73,18 +72,16 @@ const CategoryManagement = () => {
     }
   };
 
-  // Hàm handleSearch: Xử lý sự kiện nhập từ khóa tìm kiếm
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
     fetchCategories(value);
   };
 
-  // Hàm handleItemsPerPageChange: Xử lý khi người dùng thay đổi số lượng hiển thị trên mỗi trang
   const handleItemsPerPageChange = (e) => {
     const newItemsPerPage = parseInt(e.target.value);
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset về trang 1 khi thay đổi số lượng item
+    setCurrentPage(1);
   };
 
   const handleDeleteOpen = (id) => {
@@ -143,20 +140,17 @@ const CategoryManagement = () => {
     onEditClose();
   };
 
-  // Logic phân trang
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const paginatedCategories = categories.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(categories.length / itemsPerPage);
 
-  // Hàm handleNextPage: Chuyển sang trang tiếp theo nếu chưa đến trang cuối
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
   };
 
-  // Hàm handlePrevPage: Quay lại trang trước nếu không phải trang đầu
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
@@ -168,8 +162,8 @@ const CategoryManagement = () => {
       p={{ base: 2, md: 4 }}
       mx="auto"
       maxW={{ base: "100%" }}
-      w="100%" // Đảm bảo chiều rộng đầy đủ
-      overflowX="hidden" // Ngăn tràn ngang
+      w="100%"
+      overflowX="hidden"
     >
       <Tabs index={activeTab} onChange={(index) => setActiveTab(index)}>
         <TabList
@@ -190,7 +184,6 @@ const CategoryManagement = () => {
 
         <TabPanels>
           <TabPanel p={0}>
-            {/* Đặt tìm kiếm và chọn số lượng hiển thị trên cùng một hàng */}
             <Flex
               direction={{ base: "column", md: "row" }}
               align={{ base: "stretch", md: "center" }}
@@ -271,7 +264,6 @@ const CategoryManagement = () => {
               </HStack>
             </Flex>
 
-            {/* Bảng trên desktop, danh sách trên mobile */}
             <Box
               overflowX={{ base: "auto", md: "visible" }}
               display={{ base: "block", md: "block" }}
@@ -286,8 +278,9 @@ const CategoryManagement = () => {
                 <Thead>
                   <Tr>
                     <Th w="10%">ID</Th>
-                    <Th w="30%">Tên</Th>
-                    <Th w="50%">Mô tả</Th>
+                    <Th w="25%">Tên</Th>
+                    <Th w="35%">Mô tả</Th>
+                    <Th w="20%">Ngày tạo</Th>
                     <Th w="10%">Thao tác</Th>
                   </Tr>
                 </Thead>
@@ -297,6 +290,7 @@ const CategoryManagement = () => {
                       <Td>{category.id}</Td>
                       <Td>{category.name}</Td>
                       <Td>{category.description || "Không có mô tả"}</Td>
+                      <Td>{new Date(category.createdAt).toLocaleDateString("vi-VN")}</Td>
                       <Td>
                         <Flex align="center" gap={2}>
                           <IconButton
@@ -320,7 +314,6 @@ const CategoryManagement = () => {
                 </Tbody>
               </Table>
 
-              {/* Danh sách dạng thẻ trên mobile */}
               <VStack
                 spacing={4}
                 align="stretch"
@@ -342,6 +335,9 @@ const CategoryManagement = () => {
                         <Text>Tên: {category.name}</Text>
                         <Text fontSize="sm">
                           Mô tả: {category.description || "Không có mô tả"}
+                        </Text>
+                        <Text fontSize="sm">
+                          Ngày tạo: {new Date(category.createdAt).toLocaleDateString("vi-VN")}
                         </Text>
                       </VStack>
                       <VStack spacing={2}>
@@ -366,7 +362,6 @@ const CategoryManagement = () => {
               </VStack>
             </Box>
 
-            {/* Phân trang */}
             {categories.length > 0 && (
               <Flex
                 direction={{ base: "column", md: "row" }}

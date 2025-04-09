@@ -26,6 +26,7 @@ import Account from "./Pages/Home/Body/Account/Account";
 import Blog from "./Pages/Home/Body/Blogs/Blog";
 import Blogdetail from "./Pages/Home/Body/Blogs/Blogdetail";
 import Abouts from "./Pages/Home/Body/About/About-us";
+import Promotions from "./Pages/Home/Body/promotions/promotions";
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user } = React.useContext(UserContext);
 
@@ -85,6 +86,8 @@ const App = () => {
               <Route path="/blog/:id" element={<MainLayout><Blogdetail /></MainLayout>} />
               {/* Trang giới thiệu */}
               <Route path="/about-us" element={<MainLayout><Abouts /></MainLayout>} />
+              {/* Trang khuyến mãi */}
+              <Route path="/promotions" element={<MainLayout><Promotions /></MainLayout>} />
               {/* Trang quản trị */}
               <Route 
                 path="/admin" 

@@ -62,7 +62,7 @@ const ProductManagement = () => {
   const [selectedCategory, setSelectedCategory] = useState(""); // Thêm state cho danh mục
   const [selectedBrand, setSelectedBrand] = useState(""); // Thêm state cho thương hiệu
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Thay đổi từ const thành state
   const toast = useToast();
 
   const {
@@ -158,7 +158,6 @@ const ProductManagement = () => {
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    // fetchProducts(value, selectedCategory, selectedBrand); // Không cần gọi trực tiếp vì useEffect sẽ tự động gọi
   };
 
   // Thêm hàm xử lý thay đổi danh mục
@@ -171,6 +170,13 @@ const ProductManagement = () => {
   const handleBrandChange = (e) => {
     const value = e.target.value;
     setSelectedBrand(value);
+  };
+
+  // Thêm hàm xử lý thay đổi số lượng sản phẩm hiển thị trên mỗi trang
+  const handleItemsPerPageChange = (e) => {
+    const newItemsPerPage = parseInt(e.target.value);
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset về trang đầu tiên khi thay đổi số lượng hiển thị
   };
 
   const handleDeleteOpen = (id) => {
@@ -197,7 +203,7 @@ const ProductManagement = () => {
           setCurrentPage(currentPage - 1);
         }
       } catch (error) {
-        const errorMessage =error.customMessage ||"Lỗi không xác định";
+        const errorMessage = error.customMessage || "Lỗi không xác định";
         toast({
           title: "Lỗi",
           description: errorMessage,
@@ -381,54 +387,111 @@ const ProductManagement = () => {
         <TabPanels>
           <TabPanel p={0}>
             <Stack spacing={{ base: 2, md: 4 }} mb={{ base: 2, md: 4 }}>
-              <Flex direction={{ base: "column", md: "row" }} gap={4}>
-                <Input
-                  placeholder="Tìm kiếm sản phẩm..."
-                  value={searchTerm}
-                  onChange={handleSearch}
-                  leftIcon={<Search size={20} />}
-                  variant="outline"
-                  borderColor="var(--primary-color)"
-                  _hover={{ borderColor: "var(--hover-color)" }}
-                  _focus={{
-                    borderColor: "var(--primary-color)",
-                    boxShadow: "0 0 0 1px var(--primary-color)",
-                  }}
-                  color="black"
-                  size={{ base: "sm", md: "md" }}
-                  _dark={{
-                    color: "white",
-                    _placeholder: { color: "gray.400" },
-                  }}
-                />
-                <Select
-                  placeholder="Chọn danh mục"
-                  value={selectedCategory}
-                  onChange={handleCategoryChange}
-                  variant="outline"
-                  borderColor="var(--primary-color)"
-                  size={{ base: "sm", md: "md" }}
+              <Flex
+                direction={{ base: "column", md: "row" }}
+                align={{ base: "stretch", md: "center" }}
+                justify="space-between"
+                gap={{ base: 2, md: 4 }}
+              >
+                <Flex direction={{ base: "column", md: "row" }} gap={4} flex="1">
+                  <Input
+                    placeholder="Tìm kiếm sản phẩm..."
+                    value={searchTerm}
+                    onChange={handleSearch}
+                    leftIcon={<Search size={20} />}
+                    variant="outline"
+                    borderColor="var(--primary-color)"
+                    _hover={{ borderColor: "var(--hover-color)" }}
+                    _focus={{
+                      borderColor: "var(--primary-color)",
+                      boxShadow: "0 0 0 1px var(--primary-color)",
+                    }}
+                    color="black"
+                    size={{ base: "sm", md: "md" }}
+                    _dark={{
+                      color: "white",
+                      _placeholder: { color: "gray.400" },
+                    }}
+                  />
+                  <Select
+                    placeholder="Chọn danh mục"
+                    value={selectedCategory}
+                    onChange={handleCategoryChange}
+                    variant="outline"
+                    borderColor="var(--primary-color)"
+                    size={{ base: "sm", md: "md" }}
+                  >
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select
+                    placeholder="Chọn thương hiệu"
+                    value={selectedBrand}
+                    onChange={handleBrandChange}
+                    variant="outline"
+                    borderColor="var(--primary-color)"
+                    size={{ base: "sm", md: "md" }}
+                  >
+                    {brands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Flex>
+                <HStack
+                  spacing={2}
+                  flexShrink={0}
+                  justify={{ base: "center", md: "flex-end" }}
                 >
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </Select>
-                <Select
-                  placeholder="Chọn thương hiệu"
-                  value={selectedBrand}
-                  onChange={handleBrandChange}
-                  variant="outline"
-                  borderColor="var(--primary-color)"
-                  size={{ base: "sm", md: "md" }}
-                >
-                  {brands.map((brand) => (
-                    <option key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </option>
-                  ))}
-                </Select>
+                  <Text
+                    fontSize={{ base: "sm", md: "md" }}
+                    whiteSpace="nowrap"
+                    color="gray.600"
+                    _dark={{ color: "gray.300" }}
+                  >
+                    Hiển thị:
+                  </Text>
+                  <Select
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    size={{ base: "sm", md: "md" }}
+                    w={{ base: "100px", md: "120px" }}
+                    borderColor="gray.300"
+                    color="gray.600"
+                    _dark={{
+                      borderColor: "gray.600",
+                      color: "white",
+                      bg: "gray.700",
+                    }}
+                    sx={{
+                      option: {
+                        bg: "white",
+                        color: "gray.600",
+                        _dark: {
+                          bg: "gray.700",
+                          color: "white",
+                        },
+                      },
+                    }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                  </Select>
+                  <Text
+                    fontSize={{ base: "sm", md: "md" }}
+                    whiteSpace="nowrap"
+                    color="gray.600"
+                    _dark={{ color: "gray.300" }}
+                  >
+                    sản phẩm/trang
+                  </Text>
+                </HStack>
               </Flex>
             </Stack>
 
@@ -609,7 +672,6 @@ const ProductManagement = () => {
                             <IconButton
                               icon={<AddIcon size={16} />}
                               aria-label="Quản lý biến thể"
-                              colorScheme="green"
                               variant="outline"
                               size="xs"
                             />

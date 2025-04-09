@@ -58,12 +58,8 @@ const Brands = () => {
   }, [brands]);
 
   return (
-    <Box
-      py={{ base: 8, md: 12, lg: 20 }}
-      px={{ base: 2, md: 4, lg: 12 }}
-      mx="auto"
-      w={{ base: "95%", md: "90%", lg: "70%" }}
-    >
+    <Box py={{ base: 4, md: 8, lg: 20 }} px={{ base: 2, md: 4, lg: 8 }} mx="auto" w={{ base: "95%", md: "90%", lg: "80%" }}>
+
 
       {/* Hiển thị danh sách thương hiệu dạng list view */}
       <VStack spacing={{ base: 4, md: 6 }} align="stretch">

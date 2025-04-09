@@ -37,6 +37,7 @@ import {
   ModalCloseButton,
   FormControl,
   FormLabel,
+  Select,
 } from "@chakra-ui/react";
 import { Trash2, Edit2, Search, ChevronLeft, ChevronRight, Eye } from "react-feather";
 import { useDisclosure } from "@chakra-ui/react";
@@ -47,7 +48,7 @@ const UserManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const toast = useToast();
 
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -86,6 +87,12 @@ const UserManagement = () => {
     fetchUsers(value);
   };
 
+  const handleItemsPerPageChange = (e) => {
+    const newItemsPerPage = parseInt(e.target.value);
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
   const handleDeleteOpen = (id) => {
     setUserIdToDelete(id);
     onDeleteOpen();
@@ -104,7 +111,7 @@ const UserManagement = () => {
           isClosable: true,
           position: "top-right",
         });
-        if (paginatedUsers.length === 1 && currentPage > 1) {
+        if (currentUsers.length === 1 && currentPage > 1) {
           setCurrentPage(currentPage - 1);
         }
       } catch (error) {
@@ -185,22 +192,80 @@ const UserManagement = () => {
           {/* Tab Quản lý khách hàng (role: user) */}
           <TabPanel p={0}>
             <Stack spacing={{ base: 2, md: 4 }} mb={{ base: 2, md: 4 }}>
-              <Input
-                placeholder="Tìm kiếm khách hàng..."
-                value={searchTerm}
-                onChange={handleSearch}
-                leftIcon={<Search size={20} />}
-                variant="outline"
-                borderColor="var(--primary-color)"
-                _hover={{ borderColor: "var(--hover-color)" }}
-                _focus={{
-                  borderColor: "var(--primary-color)",
-                  boxShadow: "0 0 0 1px var(--primary-color)",
-                }}
-                color="black"
-                size={{ base: "sm", md: "md" }}
-                _dark={{ color: "white", _placeholder: { color: "white" } }}
-              />
+              <Flex
+                direction={{ base: "column", md: "row" }}
+                align={{ base: "stretch", md: "center" }}
+                justify="space-between"
+                gap={{ base: 2, md: 4 }}
+              >
+                <Input
+                  placeholder="Tìm kiếm khách hàng..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  leftIcon={<Search size={20} />}
+                  variant="outline"
+                  borderColor="var(--primary-color)"
+                  _hover={{ borderColor: "var(--hover-color)" }}
+                  _focus={{
+                    borderColor: "var(--primary-color)",
+                    boxShadow: "0 0 0 1px var(--primary-color)",
+                  }}
+                  color="black"
+                  size={{ base: "sm", md: "md" }}
+                  _dark={{ color: "white", _placeholder: { color: "white" } }}
+                  flex={{ base: "1", md: "0 1 50%" }}
+                />
+                <HStack
+                  spacing={2}
+                  flexShrink={0}
+                  justify={{ base: "center", md: "flex-end" }}
+                >
+                  <Text
+                    fontSize={{ base: "sm", md: "md" }}
+                    whiteSpace="nowrap"
+                    color="gray.600"
+                    _dark={{ color: "gray.300" }}
+                  >
+                    Hiển thị:
+                  </Text>
+                  <Select
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    size={{ base: "sm", md: "md" }}
+                    w={{ base: "100px", md: "120px" }}
+                    borderColor="gray.300"
+                    color="gray.600"
+                    _dark={{
+                      borderColor: "gray.600",
+                      color: "white",
+                      bg: "gray.700",
+                    }}
+                    sx={{
+                      option: {
+                        bg: "white",
+                        color: "gray.600",
+                        _dark: {
+                          bg: "gray.700",
+                          color: "white",
+                        },
+                      },
+                    }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                  </Select>
+                  <Text
+                    fontSize={{ base: "sm", md: "md" }}
+                    whiteSpace="nowrap"
+                    color="gray.600"
+                    _dark={{ color: "gray.300" }}
+                  >
+                    khách hàng/trang
+                  </Text>
+                </HStack>
+              </Flex>
             </Stack>
 
             {/* Bảng trên desktop */}
@@ -226,7 +291,7 @@ const UserManagement = () => {
                     <Tr key={user.id}>
                       <Td>{user.id}</Td>
                       <Td>{user.lastName || "N/A"}</Td>
-                      <Td>{user.firstName || "N/A"}</Td>
+                      <Td>{user.firstName || "N/A"}</Td> {/* Sửa lỗi cú pháp ở đây */}
                       <Td>{user.email}</Td>
                       <Td>{user.phone || "N/A"}</Td>
                       <Td>{new Date(user.createdAt).toLocaleString()}</Td>
@@ -339,22 +404,80 @@ const UserManagement = () => {
           {/* Tab Quản lý admin (role: admin) */}
           <TabPanel p={0}>
             <Stack spacing={{ base: 2, md: 4 }} mb={{ base: 2, md: 4 }}>
-              <Input
-                placeholder="Tìm kiếm admin..."
-                value={searchTerm}
-                onChange={handleSearch}
-                leftIcon={<Search size={20} />}
-                variant="outline"
-                borderColor="var(--primary-color)"
-                _hover={{ borderColor: "var(--hover-color)" }}
-                _focus={{
-                  borderColor: "var(--primary-color)",
-                  boxShadow: "0 0 0 1px var(--primary-color)",
-                }}
-                color="black"
-                size={{ base: "sm", md: "md" }}
-                _dark={{ color: "white", _placeholder: { color: "white" } }}
-              />
+              <Flex
+                direction={{ base: "column", md: "row" }}
+                align={{ base: "stretch", md: "center" }}
+                justify="space-between"
+                gap={{ base: 2, md: 4 }}
+              >
+                <Input
+                  placeholder="Tìm kiếm admin..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  leftIcon={<Search size={20} />}
+                  variant="outline"
+                  borderColor="var(--primary-color)"
+                  _hover={{ borderColor: "var(--hover-color)" }}
+                  _focus={{
+                    borderColor: "var(--primary-color)",
+                    boxShadow: "0 0 0 1px var(--primary-color)",
+                  }}
+                  color="black"
+                  size={{ base: "sm", md: "md" }}
+                  _dark={{ color: "white", _placeholder: { color: "white" } }}
+                  flex={{ base: "1", md: "0 1 50%" }}
+                />
+                <HStack
+                  spacing={2}
+                  flexShrink={0}
+                  justify={{ base: "center", md: "flex-end" }}
+                >
+                  <Text
+                    fontSize={{ base: "sm", md: "md" }}
+                    whiteSpace="nowrap"
+                    color="gray.600"
+                    _dark={{ color: "gray.300" }}
+                  >
+                    Hiển thị:
+                  </Text>
+                  <Select
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    size={{ base: "sm", md: "md" }}
+                    w={{ base: "100px", md: "120px" }}
+                    borderColor="gray.300"
+                    color="gray.600"
+                    _dark={{
+                      borderColor: "gray.600",
+                      color: "white",
+                      bg: "gray.700",
+                    }}
+                    sx={{
+                      option: {
+                        bg: "white",
+                        color: "gray.600",
+                        _dark: {
+                          bg: "gray.700",
+                          color: "white",
+                        },
+                      },
+                    }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                  </Select>
+                  <Text
+                    fontSize={{ base: "sm", md: "md" }}
+                    whiteSpace="nowrap"
+                    color="gray.600"
+                    _dark={{ color: "gray.300" }}
+                  >
+                    admin/trang
+                  </Text>
+                </HStack>
+              </Flex>
             </Stack>
 
             <Box overflowX={{ base: "auto", md: "visible" }} display={{ base: "block", md: "block" }}>
@@ -527,7 +650,7 @@ const UserManagement = () => {
       {/* Modal xem chi tiết user */}
       <Modal isOpen={isDetailOpen} onClose={onDetailClose}>
         <ModalOverlay />
-        <ModalContent maxW="800px"> {/* Tăng chiều rộng modal */}
+        <ModalContent maxW="800px">
           <ModalHeader>Chi tiết khách hàng</ModalHeader>
           <ModalCloseButton />
           <ModalBody>

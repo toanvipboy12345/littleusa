@@ -3,7 +3,7 @@ import { Box, Heading, Text, Image, Spinner } from "@chakra-ui/react";
 import "swiper/css";
 import "swiper/css/navigation";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Autoplay } from "swiper/modules"; // Thêm Autoplay module
+import { Navigation, Autoplay } from "swiper/modules";
 import axiosInstance from "../../../../Api/axiosInstance";
 import { Link } from "react-router-dom";
 
@@ -40,10 +40,32 @@ const TopVariantsSlider = () => {
     fetchTopVariants();
   }, []);
 
+  // Cập nhật Swiper khi thay đổi kích thước màn hình
+  useEffect(() => {
+    const handleResize = () => {
+      if (swiperRef.current && swiperRef.current.swiper) {
+        swiperRef.current.swiper.update(); // Cập nhật Swiper
+        swiperRef.current.swiper.updateSlides(); // Cập nhật slides
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Gọi lần đầu khi component mount
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   return (
     <Box as="section" bg="transparent" py="30px" mt={2}>
       <Box maxW={{ base: "90%", md: "80%" }} mx="auto">
-        <Heading size={{ base: "md", md: "lg" }} mb={6} textAlign="center" color="gray.800">
+        <Heading
+          size={{ base: "md", md: "lg" }}
+          mb={6}
+          textAlign="center"
+          color="gray.800"
+        >
           Sản Phẩm Bán Chạy
         </Heading>
 
@@ -65,53 +87,89 @@ const TopVariantsSlider = () => {
             sx={{
               "& .swiper-button-next, & .swiper-button-prev": {
                 zIndex: 10,
-                width: "40px",
-                height: "40px",
+                width: { base: "30px", md: "40px" },
+                height: { base: "30px", md: "40px" },
                 borderRadius: "50%",
                 background: "#000000",
+                display: { base: "none", md: "flex" }, // Ẩn nút điều hướng trên mobile
               },
               "& .swiper-button-next::after, & .swiper-button-prev::after": {
                 color: "white",
-                fontSize: "20px",
+                fontSize: { base: "16px", md: "20px" },
               },
             }}
           >
             <Swiper
               ref={swiperRef}
-              modules={[Navigation, Autoplay]} // Thêm Autoplay vào modules
-              spaceBetween={2}
-              slidesPerView={7}
+              modules={[Navigation, Autoplay]}
               navigation
-              loop={true} // Giữ vòng lặp
-              autoplay={{ // Thêm cấu hình autoplay
-                delay: 2000, // 2 giây
-                disableOnInteraction: false, // Tiếp tục autoplay sau khi người dùng tương tác
+              loop={true}
+              autoplay={{
+                delay: 2000,
+                disableOnInteraction: false,
+              }}
+              onBreakpoint={(swiper, breakpointParams) => {
+                console.log("Current breakpoint params:", breakpointParams); // Log để kiểm tra breakpoint
+              }}
+              onSwiper={(swiper) => {
+                console.log("Swiper initialized:", swiper); // Log khi Swiper khởi tạo
+              }}
+              breakpoints={{
+                0: {
+                  slidesPerView: 2, // Mobile: 2 sản phẩm (gộp mobile nhỏ và lớn)
+                  spaceBetween: 10,
+                },
+                768: {
+                  slidesPerView: 4, // Tablet: 4 sản phẩm (giữ nguyên)
+                  spaceBetween: 20,
+                },
+                1024: {
+                  slidesPerView: 5, // Desktop nhỏ: 5 sản phẩm (giữ nguyên)
+                  spaceBetween: 20,
+                },
+                1280: {
+                  slidesPerView: 7, // Desktop lớn: 7 sản phẩm (giữ nguyên)
+                  spaceBetween: 20,
+                },
               }}
             >
               {topVariants.map((variant, index) => {
-                const name = variant?.name ? variant.name.toLowerCase().replace(/\s+/g, "-") : "unknown-product";
+                const name = variant?.name
+                  ? variant.name.toLowerCase().replace(/\s+/g, "-")
+                  : "unknown-product";
                 const slug = `${name}`;
                 const key = variant.id ?? `variant-${index}`;
 
                 return (
-                  <SwiperSlide key={key}>
+                  <SwiperSlide
+                    key={key}
+                    style={{ width: "auto", maxWidth: "100%" }} // Đảm bảo slide không bị cố định kích thước
+                  >
                     <Link to={`/products/${variant.productId}/${slug}`}>
                       <Box
                         overflow="hidden"
                         transition="transform 0.2s ease"
                         _hover={{ bg: "gray.100" }}
+                        width="100%" // Đảm bảo Box chiếm toàn bộ chiều rộng của slide
                       >
                         <Image
                           src={`${imageBaseUrl}${variant.mainImage}`}
                           alt={variant.name || "Product"}
-                          h={{ base: "150px", md: "200px" }}
+                          h={{ base: "120px", sm: "140px", md: "200px" }}
                           w="100%"
                           objectFit="contain"
                           mt={2}
+                          loading="lazy" // Tối ưu tải hình ảnh
                         />
-                        <Box p={{ base: 2, md: 4 }} display="flex" flexDirection="column" justifyContent="center">
+                        <Box
+                          p={{ base: 1, sm: 2, md: 4 }}
+                          display="flex"
+                          flexDirection="column"
+                          justifyContent="center"
+                          textAlign="center"
+                        >
                           <Heading
-                            size={{ base: "xs", md: "sm" }}
+                            size={{ base: "xs", sm: "sm", md: "sm" }}
                             noOfLines={2}
                             textOverflow="ellipsis"
                             whiteSpace="normal"
@@ -121,17 +179,34 @@ const TopVariantsSlider = () => {
                           >
                             {variant.name || "Unnamed Product"}
                           </Heading>
-                          <Box mt={{ base: 1, md: 1 }} display="flex" alignItems="center" gap={2}>
+                          <Box
+                            mt={{ base: 1, md: 1 }}
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                            gap={2}
+                          >
                             {variant.discountRate === 0 ? (
-                              <Text color="gray.800" fontWeight="bold" fontSize={{ base: "sm", md: "md" }}>
+                              <Text
+                                color="gray.800"
+                                fontWeight="bold"
+                                fontSize={{ base: "sm", sm: "md", md: "md" }}
+                              >
                                 {variant.price?.toLocaleString("vi-VN") || "0"} đ
                               </Text>
                             ) : (
                               <>
-                                <Text fontWeight="bold" fontSize={{ base: "sm", md: "sm" }}>
+                                <Text
+                                  fontWeight="bold"
+                                  fontSize={{ base: "sm", sm: "md", md: "sm" }}
+                                >
                                   {variant.discountPrice?.toLocaleString("vi-VN") || "0"} đ
                                 </Text>
-                                <Text color="gray.500" textDecoration="line-through" fontSize={{ base: "sm", md: "sm" }}>
+                                <Text
+                                  color="gray.500"
+                                  textDecoration="line-through"
+                                  fontSize={{ base: "xs", sm: "sm", md: "sm" }}
+                                >
                                   {variant.price?.toLocaleString("vi-VN") || "0"} đ
                                 </Text>
                               </>
@@ -145,7 +220,7 @@ const TopVariantsSlider = () => {
               })}
             </Swiper>
           </Box>
-        )}
+        )}  
       </Box>
     </Box>
   );

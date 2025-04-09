@@ -23,7 +23,7 @@ const PaymentError = () => {
     }, [error, toast]);
 
     return (
-        <Box py={{ base: 8, md: 12, lg: 20 }} px={{ base: 2, md: 4, lg: 8 }} mx="auto" w={{ base: "95%", md: "90%", lg: "70%" }} textAlign="center">
+        <Box py={{ base: 8, md: 12, lg: 20 }} px={{ base: 2, md: 4, lg: 8 }} mx="auto" w={{ base: "95%", md: "90%", lg: "70%" }} textAlign="center" display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="50vh">
             <Text fontSize="2xl" fontWeight="bold" mb={4}>
                 Thanh toán không thành công
             </Text>

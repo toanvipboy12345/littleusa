@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from "react";
-import { UserContext } from "../../../../context/UserContext"; // Đảm bảo đường dẫn đúng
-import axiosInstance from "../../../../Api/axiosInstance"; // Để gọi API
-import vietnamProvinces from "../../../../data/vietnam-provinces.json"; // Import trực tiếp
+import { UserContext } from "../../../../context/UserContext";
+import axiosInstance from "../../../../Api/axiosInstance";
+import vietnamProvinces from "../../../../data/vietnam-provinces.json";
 import {
   Box,
   Text,
@@ -13,16 +13,139 @@ import {
   Input,
   Select,
   useToast,
-  Tab,
   Tabs,
   TabList,
+  Tab,
   TabPanels,
   TabPanel,
+  SimpleGrid,
+  Heading,
+  Tag,
+  HStack,
+  Spinner,
 } from "@chakra-ui/react";
-import Order from "./Order/Order"; // Import Order từ file Order.jsx
+import Order from "./Order/Order";
+
+// Component hiển thị danh sách mã giảm giá của người dùng
+const MyCoupons = ({ userId }) => {
+  const [coupons, setCoupons] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const toast = useToast();
+
+  const fetchUserCoupons = async () => {
+    setLoading(true);
+    try {
+      // Giả sử API endpoint là /api/coupons/user/{userId} để lấy mã giảm giá của người dùng
+      const response = await axiosInstance.get(`/api/coupons/manage`);
+      if (Array.isArray(response.data)) {
+        setCoupons(response.data);
+      } else {
+        console.error("API did not return an array:", response.data);
+        setCoupons([]);
+      }
+    } catch (error) {
+      console.error("Error fetching user coupons:", error);
+      setCoupons([]);
+      toast({
+        title: "Lỗi khi lấy mã giảm giá",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchUserCoupons();
+    }
+  }, [userId]);
+
+  const handleCopyCode = (code) => {
+    navigator.clipboard.writeText(code);
+    toast({
+      title: "Đã sao chép mã!",
+      description: `Mã ${code} đã được sao chép vào clipboard.`,
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+  };
+
+  return (
+    <Box as="section" py="30px">
+      <Heading size={{ base: "md", md: "lg" }} mb={6} textAlign="center" color="gray.800">
+        Mã Giảm Giá Của Tôi
+      </Heading>
+      {loading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minH="200px">
+          <Spinner size="lg" color="gray.800" />
+        </Box>
+      ) : coupons.length === 0 ? (
+        <Box textAlign="center" minH="200px">
+          <Text fontSize="lg" color="gray.600">
+            Bạn chưa có mã giảm giá nào.
+          </Text>
+        </Box>
+      ) : (
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+          {coupons.map((coupon) => {
+            const endDate = new Date(coupon.endDate);
+            const currentDate = new Date();
+            const isExpired = endDate < currentDate;
+            const isAvailable = coupon.status === "ACTIVE" && !isExpired && coupon.usedCount < coupon.maxUses;
+
+            return (
+              <Box
+                key={coupon.id}
+                bg={isAvailable ? "white" : "gray.100"}
+                borderWidth="1px"
+                borderColor={isAvailable ? "gray.200" : "gray.300"}
+                borderRadius="md"
+                p={4}
+                boxShadow="sm"
+                transition="all 0.2s"
+                _hover={isAvailable ? { boxShadow: "md", transform: "scale(1.02)" } : {}}
+                opacity={isAvailable ? 1 : 0.6}
+              >
+                <VStack align="start" spacing={2}>
+                  <HStack justify="space-between" w="full">
+                    <Tag size="lg" colorScheme={isAvailable ? "green" : "red"} borderRadius="full">
+                      {isAvailable ? "Khả dụng" : isExpired ? "Hết hạn" : "Hết lượt"}
+                    </Tag>
+                    <Text fontSize="sm" color="gray.500">
+                      Hết hạn: {endDate.toLocaleDateString("vi-VN")}
+                    </Text>
+                  </HStack>
+                  <Heading size="md" color="gray.800">
+                    {coupon.code}
+                  </Heading>
+                  <Text fontSize="lg" fontWeight="bold" color="red.500">
+                    Giảm {coupon.discountRate}% (Tối đa {coupon.maxDiscountAmount.toLocaleString("vi-VN")} đ)
+                  </Text>
+                  <Button
+                    size="sm"
+                    colorScheme="teal"
+                    onClick={() => handleCopyCode(coupon.code)}
+                    isDisabled={!isAvailable}
+                    w="full"
+                  >
+                    Sao chép mã
+                  </Button>
+                </VStack>
+              </Box>
+            );
+          })}
+        </SimpleGrid>
+      )}
+    </Box>
+  );
+};
 
 const Account = () => {
-  const { user, setUser } = useContext(UserContext); // Lấy user và setUser từ context
+  const { user, setUser } = useContext(UserContext);
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -34,17 +157,15 @@ const Account = () => {
     ward: "",
     street: user?.address?.street || "",
   });
-  const [isEditing, setIsEditing] = useState(false); // Trạng thái chỉnh sửa
-  const [isSubmitting, setIsSubmitting] = useState(false); // Trạng thái gửi form
-  const [provinces, setProvinces] = useState([]); // Danh sách tỉnh/thành
-  const [districts, setDistricts] = useState([]); // Danh sách quận/huyện
-  const [wards, setWards] = useState([]); // Danh sách phường/xã
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([]);
   const toast = useToast();
 
-  // Load dữ liệu từ vietnam-provinces.json khi component mount
   useEffect(() => {
-    setProvinces(vietnamProvinces); // Gán trực tiếp dữ liệu từ import
-    // Khởi tạo giá trị địa chỉ từ user.address nếu có
+    setProvinces(vietnamProvinces);
     if (user?.address) {
       const { city, country, district, ward, street } = user.address;
       setFormData((prev) => ({
@@ -58,7 +179,6 @@ const Account = () => {
     }
   }, [user]);
 
-  // Cập nhật districts khi chọn province
   const handleProvinceChange = (e) => {
     const selectedProvince = provinces.find((p) => p.name === e.target.value);
     setDistricts(selectedProvince?.districts || []);
@@ -71,7 +191,6 @@ const Account = () => {
     }));
   };
 
-  // Cập nhật wards khi chọn district
   const handleDistrictChange = (e) => {
     const selectedDistrict = districts.find((d) => d.name === e.target.value);
     setWards(selectedDistrict?.wards || []);
@@ -82,7 +201,6 @@ const Account = () => {
     }));
   };
 
-  // Cập nhật ward khi chọn
   const handleWardChange = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -90,7 +208,6 @@ const Account = () => {
     }));
   };
 
-  // Xử lý thay đổi input
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -99,12 +216,10 @@ const Account = () => {
     }));
   };
 
-  // Bật chế độ chỉnh sửa
   const handleEdit = () => {
     setIsEditing(true);
   };
 
-  // Hủy chỉnh sửa, quay lại dữ liệu ban đầu
   const handleCancel = () => {
     setIsEditing(false);
     setFormData({
@@ -128,12 +243,10 @@ const Account = () => {
     );
   };
 
-  // Xử lý submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Chuẩn bị địa chỉ dưới dạng object
     const updatedAddress = {
       city: formData.city,
       country: formData.country,
@@ -149,7 +262,6 @@ const Account = () => {
       });
       const updatedUser = response.data;
 
-      // Cập nhật user trong context và localStorage
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
 
@@ -160,7 +272,7 @@ const Account = () => {
         duration: 3000,
         isClosable: true,
       });
-      setIsEditing(false); // Tắt chế độ chỉnh sửa sau khi cập nhật thành công
+      setIsEditing(false);
     } catch {
       toast({
         title: "Lỗi",
@@ -174,7 +286,6 @@ const Account = () => {
     }
   };
 
-  // Hàm xác định label dựa trên giá trị hiện tại
   const getAddressLabel = (level, value) => {
     if (!value) return level === "city" ? "Thành phố/Tỉnh" : level === "district" ? "Quận/Huyện" : "Phường/Xã";
     if (level === "city") {
@@ -192,7 +303,6 @@ const Account = () => {
     return level === "city" ? "Thành phố/Tỉnh" : level === "district" ? "Quận/Huyện" : "Phường/Xã";
   };
 
-  // Lấy ngày tạo tài khoản, xử lý trường hợp null
   const getCreatedAt = () => {
     if (!user || !user.createdAt) return "Chưa có thông tin";
     return new Date(user.createdAt).toLocaleDateString("vi-VN", {
@@ -212,16 +322,13 @@ const Account = () => {
       <Tabs isLazy>
         <TabList>
           <Tab>Thông tin tài khoản</Tab>
-          <Tab>Phần đơn hàng của bạn</Tab>
+          <Tab>Đơn hàng của tôi</Tab>
+          <Tab>Mã giảm giá của tôi</Tab> {/* Tab mới */}
         </TabList>
 
         <TabPanels>
           <TabPanel>
             <VStack spacing={6} align="stretch">
-              {/* Tiêu đề */}
-
-
-              {/* Form thông tin cá nhân */}
               <Box
                 p={6}
                 borderWidth="1px"
@@ -231,7 +338,6 @@ const Account = () => {
               >
                 <form onSubmit={handleSubmit}>
                   <VStack align="stretch" spacing={4}>
-                    {/* Tên */}
                     <FormControl>
                       <FormLabel>Họ và tên</FormLabel>
                       <Flex gap={2}>
@@ -259,8 +365,6 @@ const Account = () => {
                         />
                       </Flex>
                     </FormControl>
-
-                    {/* Email */}
                     <FormControl>
                       <FormLabel>Email</FormLabel>
                       <Input
@@ -276,8 +380,6 @@ const Account = () => {
                         bg={isEditing ? "white" : "gray.100"}
                       />
                     </FormControl>
-
-                    {/* Số điện thoại */}
                     <FormControl>
                       <FormLabel>Số điện thoại</FormLabel>
                       <Input
@@ -292,8 +394,6 @@ const Account = () => {
                         bg={isEditing ? "white" : "gray.100"}
                       />
                     </FormControl>
-
-                    {/* Địa chỉ */}
                     <FormControl>
                       <FormLabel>Địa chỉ</FormLabel>
                       <Flex gap={2}>
@@ -356,7 +456,6 @@ const Account = () => {
                         </Box>
                       </Flex>
                     </FormControl>
-
                     <FormControl>
                       <FormLabel>Đường/Phố</FormLabel>
                       <Input
@@ -371,8 +470,6 @@ const Account = () => {
                         bg={isEditing ? "white" : "gray.100"}
                       />
                     </FormControl>
-
-                    {/* Ngày tạo tài khoản (luôn readOnly) */}
                     <FormControl>
                       <FormLabel>Ngày tạo tài khoản</FormLabel>
                       <Input
@@ -384,8 +481,6 @@ const Account = () => {
                         bg="gray.100"
                       />
                     </FormControl>
-
-                    {/* Nút điều khiển */}
                     <Flex justify="flex-end" gap={3}>
                       {!isEditing ? (
                         <Button
@@ -421,6 +516,9 @@ const Account = () => {
           </TabPanel>
           <TabPanel>
             <Order />
+          </TabPanel>
+          <TabPanel>
+            <MyCoupons userId={user?.id} /> {/* Truyền userId vào MyCoupons */}
           </TabPanel>
         </TabPanels>
       </Tabs>

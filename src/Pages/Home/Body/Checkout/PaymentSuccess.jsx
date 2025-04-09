@@ -25,11 +25,15 @@ const PaymentSuccess = () => {
 
     return (
         <Box
-            py={{ base: 8, md: 12, lg: 20 }}
-            px={{ base: 2, md: 4, lg: 8 }}
+            display="flex" // Sử dụng flexbox để căn giữa
+            flexDirection="column" // Xếp nội dung theo cột
+            justifyContent="center" // Căn giữa theo chiều dọc
+            alignItems="center" // Căn giữa theo chiều ngang
+            minHeight="50vh" // Chiều cao tối thiểu bằng viewport để căn giữa toàn màn hình
+            px={{ base: 2, md: 4, lg: 8 }} // Padding ngang
             mx="auto"
-            w={{ base: "95%", md: "90%", lg: "70%" }}
-            textAlign="center"
+            w={{ base: "95%", md: "90%", lg: "70%" }} // Chiều rộng
+            textAlign="center" // Căn giữa văn bản
         >
             <Text fontSize="2xl" fontWeight="bold" mb={4}>
                 {pageTitle}

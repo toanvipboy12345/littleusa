@@ -57,7 +57,7 @@ const EditShippingMethod = ({ isOpen, onClose, shippingMethod, onEditSuccess }) 
     };
 
     try {
-      const response = await axiosInstance.put(`/api/shipping-methods/manage/${editedShippingMethod.id}`, shippingMethodData);
+      const response = await axiosInstance.put(`/api/shipping-methods/${editedShippingMethod.id}`, shippingMethodData);
       if (response.status === 200) {
         toast({
           title: "Thành công",
@@ -139,7 +139,7 @@ const EditShippingMethod = ({ isOpen, onClose, shippingMethod, onEditSuccess }) 
           <Button variant="ghost" mr={3} onClick={onClose}>
             Hủy
           </Button>
-          <Button colorScheme="blue" onClick={handleSubmit}>
+          <Button onClick={handleSubmit}>
             Lưu
           </Button>
         </ModalFooter>

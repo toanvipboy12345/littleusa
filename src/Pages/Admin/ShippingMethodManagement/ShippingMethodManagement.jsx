@@ -56,7 +56,7 @@ const ShippingMethodManagement = () => {
 
   const fetchShippingMethods = async () => {
     try {
-      const response = await axiosInstance.get("/api/shipping-methods/manage");
+      const response = await axiosInstance.get("/api/shipping-methods");
       setShippingMethods(response.data);
       setCurrentPage(1);
     } catch (error) {
@@ -73,11 +73,16 @@ const ShippingMethodManagement = () => {
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    const filteredShippingMethods = shippingMethods.filter((method) =>
-      method.code.toLowerCase().includes(value.toLowerCase()) ||
-      method.name.toLowerCase().includes(value.toLowerCase())
-    );
-    setShippingMethods(filteredShippingMethods);
+    if (value.trim() === "") {
+      fetchShippingMethods(); // Làm mới danh sách nếu không có từ khóa tìm kiếm
+    } else {
+      const filteredShippingMethods = shippingMethods.filter(
+        (method) =>
+          method.code.toLowerCase().includes(value.toLowerCase()) ||
+          method.name.toLowerCase().includes(value.toLowerCase())
+      );
+      setShippingMethods(filteredShippingMethods);
+    }
   };
 
   const handleDeleteOpen = (id) => {
@@ -88,8 +93,7 @@ const ShippingMethodManagement = () => {
   const handleDeleteConfirm = async () => {
     if (shippingMethodIdToDelete) {
       try {
-        await axiosInstance.delete(`/api/shipping-methods/manage/${shippingMethodIdToDelete}`);
-        setShippingMethods(shippingMethods.filter((method) => method.id !== shippingMethodIdToDelete));
+        await axiosInstance.delete(`/api/shipping-methods/${shippingMethodIdToDelete}`);
         toast({
           title: "Thành công",
           description: "Đã xóa đơn vị vận chuyển.",
@@ -98,9 +102,8 @@ const ShippingMethodManagement = () => {
           isClosable: true,
           position: "top-right",
         });
-        if (paginatedShippingMethods.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        }
+        // Làm mới danh sách từ server sau khi xóa
+        await fetchShippingMethods();
       } catch (error) {
         toast({
           title: "Lỗi",
@@ -125,6 +128,7 @@ const ShippingMethodManagement = () => {
   const handleAddSuccess = (newShippingMethod) => {
     setShippingMethods([...shippingMethods, newShippingMethod]);
     setActiveTab(0);
+    fetchShippingMethods(); // Làm mới danh sách sau khi thêm
   };
 
   const handleEditSuccess = (updatedShippingMethod) => {
@@ -134,6 +138,7 @@ const ShippingMethodManagement = () => {
       )
     );
     onEditClose();
+    fetchShippingMethods(); // Làm mới danh sách sau khi chỉnh sửa
   };
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -149,14 +154,19 @@ const ShippingMethodManagement = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
 
+  const formatDate = (dateString) =>
+    dateString
+      ? new Date(dateString).toLocaleString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "Không có ngày";
+
   return (
-    <Box
-      p={{ base: 1, md: 4 }}
-      mx="auto"
-      maxW={{ base: "100%", md: "100%" }}
-      w="100%"
-      overflowX="hidden"
-    >
+    <Box p={{ base: 1, md: 4 }} mx="auto" maxW={{ base: "100%", md: "100%" }} w="100%" overflowX="hidden">
       <Tabs index={activeTab} onChange={(index) => setActiveTab(index)}>
         <TabList mb={{ base: 2, md: 4 }} overflowX={{ base: "auto", md: "visible" }} whiteSpace="nowrap">
           <Tab fontSize={{ base: "sm", md: "md" }}>Danh sách đơn vị vận chuyển</Tab>
@@ -173,7 +183,7 @@ const ShippingMethodManagement = () => {
                 leftIcon={<Search size={20} />}
                 variant="outline"
                 borderColor="var(--primary-color)"
-                _hover={{ borderColor: "var(--hover-color)" }}
+                _hover={{ borderColor: "var(--hover  --hover-color)" }}
                 _focus={{ borderColor: "var(--primary-color)", boxShadow: "0 0 0 1px var(--primary-color)" }}
                 color="black"
                 size={{ base: "sm", md: "md" }}
@@ -190,6 +200,7 @@ const ShippingMethodManagement = () => {
                     <Th>Tên</Th>
                     <Th>Phí vận chuyển</Th>
                     <Th>Trạng thái</Th>
+                    <Th>Ngày tạo</Th>
                     <Th>Thao tác</Th>
                   </Tr>
                 </Thead>
@@ -201,6 +212,7 @@ const ShippingMethodManagement = () => {
                       <Td>{method.name}</Td>
                       <Td>{method.shippingFee} VND</Td>
                       <Td>{method.status}</Td>
+                      <Td>{formatDate(method.createdAt)}</Td>
                       <Td>
                         <Flex align="center" gap={2}>
                           <IconButton
@@ -244,13 +256,13 @@ const ShippingMethodManagement = () => {
                         <Text>Tên: {method.name}</Text>
                         <Text>Phí vận chuyển: {method.shippingFee} VND</Text>
                         <Text>Trạng thái: {method.status}</Text>
+                        <Text>Ngày tạo: {formatDate(method.createdAt)}</Text>
                       </VStack>
                       <VStack spacing={2}>
                         <IconButton
                           icon={<Edit2 size={16} />}
                           aria-label="Sửa đơn vị vận chuyển"
                           onClick={() => handleEditOpen(method)}
-                          colorScheme="blue"
                           variant="outline"
                           size="xs"
                         />
@@ -258,7 +270,6 @@ const ShippingMethodManagement = () => {
                           icon={<Trash2 size={16} />}
                           aria-label="Xóa đơn vị vận chuyển"
                           onClick={() => handleDeleteOpen(method.id)}
-                          colorScheme="red"
                           variant="outline"
                           size="xs"
                         />

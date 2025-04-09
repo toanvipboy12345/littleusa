@@ -30,14 +30,15 @@ import {
   FormControl,
   FormLabel,
   SimpleGrid,
+  Select,
 } from "@chakra-ui/react";
-import { Search, ChevronLeft, ChevronRight } from "react-feather";
+import { Search, ChevronLeft, ChevronRight, Download } from "react-feather"; // Thêm Download icon
 
 const PurchaseOrderManagement = () => {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
@@ -69,6 +70,12 @@ const PurchaseOrderManagement = () => {
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleItemsPerPageChange = (e) => {
+    const newItemsPerPage = parseInt(e.target.value);
+    setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
   };
 
@@ -130,6 +137,53 @@ const PurchaseOrderManagement = () => {
     }
   };
 
+  const handleCreatePurchaseOrder = () => {
+    toast({
+      title: "Thông báo",
+      description: "Chức năng tạo phiếu nhập hàng đang được phát triển.",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+      position: "top-right",
+    });
+  };
+
+  const handleExportPdf = async (id) => {
+    try {
+      const response = await axiosInstance.get(`/api/purchase-orders/${id}/export-pdf`, {
+        responseType: "blob", // Nhận dữ liệu dưới dạng blob (file binary)
+      });
+
+      // Tạo URL từ blob và kích hoạt tải file
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `purchase_order_${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast({
+        title: "Thành công",
+        description: "Phiếu nhập hàng đã được xuất thành file PDF.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể xuất phiếu nhập hàng thành PDF.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+  };
+
   const formatCurrency = (value) => {
     if (!value || isNaN(value)) return "";
     return new Intl.NumberFormat("vi-VN", {
@@ -154,7 +208,6 @@ const PurchaseOrderManagement = () => {
     onOpen();
   };
 
-  // Phân trang
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const paginatedPurchaseOrders = purchaseOrders.slice(indexOfFirstItem, indexOfLastItem);
@@ -172,7 +225,6 @@ const PurchaseOrderManagement = () => {
     }
   };
 
-  // Hàm nhóm các mục nhập theo variantColor
   const groupItemsByColor = (items) => {
     const grouped = {};
     items.forEach((item) => {
@@ -193,7 +245,6 @@ const PurchaseOrderManagement = () => {
     return Object.values(grouped);
   };
 
-  // Hàm chuyển đổi trạng thái sang tiếng Việt
   const getStatusInVietnamese = (status) => {
     switch (status) {
       case "PENDING":
@@ -213,24 +264,80 @@ const PurchaseOrderManagement = () => {
         <Text fontSize={{ base: "lg", md: "xl" }} fontWeight="bold">
           Danh sách phiếu nhập hàng
         </Text>
-        <Flex direction={{ base: "column", md: "row" }} gap={4} align="center">
-          <InputGroup maxW={{ base: "100%", md: "300px" }}>
-            <InputLeftElement pointerEvents="none">
-              <Search size={20} color="gray.500" />
-            </InputLeftElement>
-            <Input
-              placeholder="Tìm kiếm theo mã hoặc tên sản phẩm..."
-              value={searchTerm}
-              onChange={handleSearch}
-              variant="outline"
-              borderColor="var(--primary-color)"
-              _hover={{ borderColor: "var(--hover-color)" }}
-              _focus={{ borderColor: "var(--primary-color)", boxShadow: "0 0 0 1px var(--primary-color)" }}
-              color="black"
+        <Flex direction={{ base: "column", md: "row" }} gap={4} align="center" justify="space-between">
+          <Flex direction={{ base: "column", md: "row" }} gap={4} align="center" flex="1">
+            <InputGroup maxW={{ base: "100%", md: "300px" }}>
+              <InputLeftElement pointerEvents="none">
+                <Search size={20} color="gray.500" />
+              </InputLeftElement>
+              <Input
+                placeholder="Tìm kiếm theo mã hoặc tên sản phẩm..."
+                value={searchTerm}
+                onChange={handleSearch}
+                variant="outline"
+                borderColor="var(--primary-color)"
+                _hover={{ borderColor: "var(--hover-color)" }}
+                _focus={{ borderColor: "var(--primary-color)", boxShadow: "0 0 0 1px var(--primary-color)" }}
+                color="black"
+                size={{ base: "sm", md: "md" }}
+                _dark={{ color: "white", _placeholder: { color: "gray.400" } }}
+              />
+            </InputGroup>
+            <Button
+              variant="solid"
+              colorScheme="blue"
               size={{ base: "sm", md: "md" }}
-              _dark={{ color: "white", _placeholder: { color: "gray.400" } }}
-            />
-          </InputGroup>
+              onClick={handleCreatePurchaseOrder}
+            >
+              Tạo phiếu nhập
+            </Button>
+          </Flex>
+          <HStack spacing={2} flexShrink={0} justify={{ base: "center", md: "flex-end" }}>
+            <Text
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="nowrap"
+              color="gray.600"
+              _dark={{ color: "gray.300" }}
+            >
+              Hiển thị:
+            </Text>
+            <Select
+              value={itemsPerPage}
+              onChange={handleItemsPerPageChange}
+              size={{ base: "sm", md: "md" }}
+              w={{ base: "100px", md: "120px" }}
+              borderColor="gray.300"
+              color="gray.600"
+              _dark={{
+                borderColor: "gray.600",
+                color: "white",
+                bg: "gray.700",
+              }}
+              sx={{
+                option: {
+                  bg: "white",
+                  color: "gray.600",
+                  _dark: {
+                    bg: "gray.700",
+                    color: "white",
+                  },
+                },
+              }}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+            </Select>
+            <Text
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="nowrap"
+              color="gray.600"
+              _dark={{ color: "gray.300" }}
+            >
+              phiếu nhập/trang
+            </Text>
+          </HStack>
         </Flex>
       </Stack>
 
@@ -287,6 +394,13 @@ const PurchaseOrderManagement = () => {
                         </Button>
                       </>
                     )}
+                    <Button
+                      size={{ base: "xs", md: "sm" }}
+                      onClick={() => handleExportPdf(order.id)}
+                      leftIcon={<Download size={16} />}
+                    >
+                      Xuất PDF
+                    </Button>
                   </HStack>
                 </Td>
               </Tr>
@@ -330,7 +444,6 @@ const PurchaseOrderManagement = () => {
         </Flex>
       )}
 
-      {/* Modal để xem chi tiết */}
       <Modal isOpen={isOpen} onClose={onClose} size="3xl">
         <ModalOverlay />
         <ModalContent>
@@ -383,7 +496,7 @@ const PurchaseOrderManagement = () => {
                   {groupItemsByColor(selectedOrder.items).map((group, groupIndex) => (
                     <Box
                       key={groupIndex}
-                      width={{ base: "100%", md: "48%" }} 
+                      width={{ base: "100%", md: "48%" }}
                       p={2}
                       mb={4}
                     >
@@ -423,6 +536,11 @@ const PurchaseOrderManagement = () => {
               </Box>
             )}
           </ModalBody>
+          <ModalFooter>
+            <Button variant="solid" onClick={onClose}>
+              Đóng
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </Box>

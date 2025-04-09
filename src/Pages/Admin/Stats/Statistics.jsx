@@ -54,7 +54,7 @@ const Statistics = () => {
 
   // Bộ lọc
   const [startDate, setStartDate] = useState("2025-01-01");
-  const [endDate, setEndDate] = useState("2025-03-31");
+  const [endDate, setEndDate] = useState("2025-04-10");
   const [groupBy, setGroupBy] = useState("month");
 
   // Màu sắc cho biểu đồ

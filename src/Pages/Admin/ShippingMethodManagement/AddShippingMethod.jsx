@@ -39,7 +39,7 @@ const AddShippingMethod = ({ onAddSuccess }) => {
     };
 
     try {
-      const response = await axiosInstance.post("/api/shipping-methods/manage", shippingMethodData);
+      const response = await axiosInstance.post("/api/shipping-methods", shippingMethodData);
       if (response.status === 200) {
         setNewShippingMethod({
           code: "",

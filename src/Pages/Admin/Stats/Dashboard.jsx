@@ -15,14 +15,13 @@ import {
   ListItem,
   ListIcon,
   Divider,
+  Button, // Thêm Button từ Chakra UI
 } from "@chakra-ui/react";
 import {
   Package,
   Copy,
   User,
   ShoppingCart,
-  Bell,
-  FileText,
   Star,
 } from "react-feather";
 import { Line } from "react-chartjs-2";
@@ -46,7 +45,7 @@ ChartJS.register(
   Legend
 );
 
-const Dashboard = () => {
+const Dashboard = ({ setActiveMenu }) => { // Thêm prop setActiveMenu từ parent
   const [stats, setStats] = useState(null);
   const [weeklyRevenueData, setWeeklyRevenueData] = useState([]);
   const [topVariants, setTopVariants] = useState([]);
@@ -146,6 +145,11 @@ const Dashboard = () => {
     },
   };
 
+  // Hàm xử lý khi nhấn "Xem chi tiết"
+  const handleViewDetails = () => {
+    setActiveMenu("statistics"); // Chuyển sang giao diện Statistics
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minH="50vh">
@@ -194,7 +198,17 @@ const Dashboard = () => {
       </SimpleGrid>
 
       <Box mt={2}>
-        <Text fontSize="xl" fontWeight="bold" mb={4}>Doanh thu theo tuần</Text>
+        <HStack justify="space-between" align="center" mb={4} mt={4}>
+          <Text fontSize="xl" fontWeight="bold">Doanh thu theo tuần</Text>
+          <Text
+            fontSize="sm"
+            textDecoration="underline"
+            cursor="pointer"
+            onClick={handleViewDetails}
+          >
+            Xem chi tiết
+          </Text>
+        </HStack>
         <HStack spacing={4} align="stretch" flexWrap={{ base: "wrap", md: "nowrap" }}>
           <Box
             p={4}
@@ -219,34 +233,6 @@ const Dashboard = () => {
           </Box>
 
           <VStack spacing={2} w={{ base: "100%", md: "30%" }} align="stretch">
-            <Box
-              bg="white"
-              p={2}
-              borderRadius="md"
-              boxShadow="md"
-              borderLeft="4px solid"
-              borderColor="green.500"
-              _dark={{ bg: "gray.900", color: "white" }}
-              textAlign="center"
-              h="10%"
-            >
-              <Text fontSize="lg" fontWeight="bold">Bạn có {stats.totalOrdersToday} đơn hàng mới</Text>
-            </Box>
-
-            <Box
-              bg="white"
-              p={2}
-              borderRadius="md"
-              boxShadow="md"
-              borderLeft="4px solid"
-              borderColor="yellow.500"
-              _dark={{ bg: "gray.900", color: "white" }}
-              textAlign="center"
-              h="10%"
-            >
-              <Text fontSize="lg" fontWeight="bold">Bạn có {stats.totalNotificationsToday} thông báo mới</Text>
-            </Box>
-
             <Box
               bg="white"
               px={4}

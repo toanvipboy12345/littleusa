@@ -51,12 +51,8 @@ const Blogs = () => {
   };
 
   return (
-    <Box 
-      py={{ base: 4, md: 8, lg: 12 }} 
-      px={{ base: 2, md: 4, lg: 6 }} 
-      mx="auto" 
-      maxW="container.xl"
-    >
+    <Box py={{ base: 4, md: 8, lg: 20 }} px={{ base: 2, md: 4, lg: 8 }} mx="auto" w={{ base: "95%", md: "90%", lg: "80%" }}>
+
       <Breadcrumb 
         spacing="8px" 
         separator="/" 

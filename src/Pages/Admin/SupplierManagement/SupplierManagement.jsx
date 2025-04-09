@@ -31,6 +31,7 @@ import {
   VStack,
   Text,
   Tooltip,
+  Select,
 } from "@chakra-ui/react";
 import { Trash2, Edit2, Search, ChevronLeft, ChevronRight } from "react-feather";
 import AddSupplier from "./AddSupplier";
@@ -42,7 +43,7 @@ const SupplierManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Thay đổi từ const thành state
   const toast = useToast();
 
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -79,6 +80,13 @@ const SupplierManagement = () => {
     const value = e.target.value;
     setSearchTerm(value);
     fetchSuppliers(value);
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (e) => {
+    const newItemsPerPage = parseInt(e.target.value);
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset về trang đầu tiên khi thay đổi số lượng hiển thị
   };
 
   const handleDeleteOpen = (id) => {
@@ -188,25 +196,84 @@ const SupplierManagement = () => {
         <TabPanels>
           <TabPanel p={0}>
             <Stack spacing={{ base: 2, md: 4 }} mb={{ base: 2, md: 4 }}>
-              <Input
-                placeholder="Tìm kiếm nhà cung cấp..."
-                value={searchTerm}
-                onChange={handleSearch}
-                leftIcon={<Search size={20} />}
-                variant="outline"
-                borderColor="var(--primary-color)"
-                _hover={{ borderColor: "var(--hover-color)" }}
-                _focus={{
-                  borderColor: "var(--primary-color)",
-                  boxShadow: "0 0 0 1px var(--primary-color)",
-                }}
-                color="black"
-                size={{ base: "sm", md: "md" }}
-                _dark={{
-                  color: "white",
-                  _placeholder: { color: "white" },
-                }}
-              />
+              <Flex
+                direction={{ base: "column", md: "row" }}
+                align={{ base: "stretch", md: "center" }}
+                justify="space-between"
+                gap={{ base: 2, md: 4 }}
+                w="100%"
+              >
+                <Input
+                  placeholder="Tìm kiếm nhà cung cấp..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  leftIcon={<Search size={20} />}
+                  variant="outline"
+                  borderColor="var(--primary-color)"
+                  _hover={{ borderColor: "var(--hover-color)" }}
+                  _focus={{
+                    borderColor: "var(--primary-color)",
+                    boxShadow: "0 0 0 1px var(--primary-color)",
+                  }}
+                  color="black"
+                  size={{ base: "sm", md: "md" }}
+                  _dark={{
+                    color: "white",
+                    _placeholder: { color: "white" },
+                  }}
+                  flex={{ base: "1", md: "0 1 50%" }}
+                />
+                <HStack
+                  spacing={2}
+                  flexShrink={0}
+                  justify={{ base: "center", md: "flex-end" }}
+                >
+                  <Text
+                    fontSize={{ base: "sm", md: "md" }}
+                    whiteSpace="nowrap"
+                    color="gray.600"
+                    _dark={{ color: "gray.300" }}
+                  >
+                    Hiển thị:
+                  </Text>
+                  <Select
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    size={{ base: "sm", md: "md" }}
+                    w={{ base: "100px", md: "120px" }}
+                    borderColor="gray.300"
+                    color="gray.600"
+                    _dark={{
+                      borderColor: "gray.600",
+                      color: "white",
+                      bg: "gray.700",
+                    }}
+                    sx={{
+                      option: {
+                        bg: "white",
+                        color: "gray.600",
+                        _dark: {
+                          bg: "gray.700",
+                          color: "white",
+                        },
+                      },
+                    }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                  </Select>
+                  <Text
+                    fontSize={{ base: "sm", md: "md" }}
+                    whiteSpace="nowrap"
+                    color="gray.600"
+                    _dark={{ color: "gray.300" }}
+                  >
+                    nhà cung cấp/trang
+                  </Text>
+                </HStack>
+              </Flex>
             </Stack>
 
             <Box

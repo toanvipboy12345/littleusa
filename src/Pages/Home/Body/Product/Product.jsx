@@ -42,6 +42,7 @@ const Product = () => {
     brand: [],
     priceMin: "",
     priceMax: "",
+    hasDiscount: false, // Thêm hasDiscount vào filters
   });
   const [sort, setSort] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,6 +62,7 @@ const Product = () => {
     const brand = searchParams.get("brand")?.split(",") || [];
     const priceMin = searchParams.get("priceMin") || "";
     const priceMax = searchParams.get("priceMax") || "";
+    const hasDiscount = searchParams.get("hasDiscount") === "true"; // Lấy hasDiscount từ URL
     const sortParam = searchParams.get("sort") || "";
     const pageParam = parseInt(searchParams.get("page") || "0", 10);
 
@@ -69,30 +71,36 @@ const Product = () => {
       brand,
       priceMin,
       priceMax,
+      hasDiscount, // Khởi tạo hasDiscount từ URL
     });
     setSort(sortParam);
     setPage(pageParam >= 0 ? pageParam : 0);
-    updateAppliedFilters(category, brand, priceMin, priceMax);
+    updateAppliedFilters(category, brand, priceMin, priceMax, hasDiscount);
 
     fetchBrands();
     fetchCategories();
-    fetchProducts(pageParam >= 0 ? pageParam : 0, { category, brand, priceMin, priceMax, sort: sortParam });
+    fetchProducts(pageParam >= 0 ? pageParam : 0, { category, brand, priceMin, priceMax, hasDiscount, sort: sortParam });
   }, []); // Chỉ chạy khi mount
 
   // Theo dõi searchParams khi URL thay đổi từ Header
   useEffect(() => {
     const categoryFromUrl = searchParams.get("category")?.split(",") || [];
     const pageFromUrl = parseInt(searchParams.get("page") || "0", 10);
+    const hasDiscountFromUrl = searchParams.get("hasDiscount") === "true";
 
-    // Chỉ fetch lại nếu category từ URL khác với filters hiện tại
-    if (JSON.stringify(categoryFromUrl) !== JSON.stringify(filters.category)) {
+    // Chỉ fetch lại nếu category hoặc hasDiscount từ URL khác với filters hiện tại
+    if (
+      JSON.stringify(categoryFromUrl) !== JSON.stringify(filters.category) ||
+      hasDiscountFromUrl !== filters.hasDiscount
+    ) {
       setFilters((prev) => ({
         ...prev,
         category: categoryFromUrl,
+        hasDiscount: hasDiscountFromUrl,
       }));
-      setPage(0); // Reset về page 0 khi danh mục thay đổi
-      updateAppliedFilters(categoryFromUrl, filters.brand, filters.priceMin, filters.priceMax);
-      fetchProducts(0, { ...filters, category: categoryFromUrl }); // Fetch với danh mục mới
+      setPage(0); // Reset về page 0 khi danh mục hoặc hasDiscount thay đổi
+      updateAppliedFilters(categoryFromUrl, filters.brand, filters.priceMin, filters.priceMax, hasDiscountFromUrl);
+      fetchProducts(0, { ...filters, category: categoryFromUrl, hasDiscount: hasDiscountFromUrl });
     } else if (pageFromUrl !== page) {
       // Nếu chỉ page thay đổi, fetch lại với page mới
       setPage(pageFromUrl);
@@ -100,12 +108,13 @@ const Product = () => {
     }
   }, [searchParams]); // Theo dõi searchParams
 
-  const updateAppliedFilters = (cat, br, min, max) => {
+  const updateAppliedFilters = (cat, br, min, max, hasDiscount) => {
     const filtersList = [];
     if (cat.length > 0) filtersList.push(`Danh mục: ${cat.join(", ")}`);
     if (br.length > 0) filtersList.push(`Thương hiệu: ${br.join(", ")}`);
     if (min) filtersList.push(`Giá từ: ${min} đ`);
     if (max) filtersList.push(`Giá đến: ${max} đ`);
+    if (hasDiscount) filtersList.push("Sản phẩm khuyến mại"); // Thêm bộ lọc khuyến mại vào danh sách
     setAppliedFilters(filtersList);
   };
 
@@ -141,15 +150,13 @@ const Product = () => {
             brand: appliedFilters.brand.length > 0 ? appliedFilters.brand.join(",") : undefined,
             priceMin: appliedFilters.priceMin || undefined,
             priceMax: appliedFilters.priceMax || undefined,
+            hasDiscount: appliedFilters.hasDiscount || undefined, // Thêm hasDiscount vào params
             sort: sort || undefined,
           },
         });
         setProducts(response.data.products);
         const totalCards = response.data.total;
         setTotalPages(Math.ceil(totalCards / size) || 1);
-
-        // Chỉ cập nhật searchParams khi người dùng chủ động áp dụng bộ lọc, không phải mỗi lần fetch
-        // Ở đây bỏ setSearchParams để tránh vòng lặp
 
         const elapsedTime = Date.now() - startTime;
         const remainingTime = 1000 - elapsedTime;
@@ -189,7 +196,8 @@ const Product = () => {
       else if (filterToRemove.startsWith("Thương hiệu:")) newFilters.brand = [];
       else if (filterToRemove.startsWith("Giá từ:")) newFilters.priceMin = "";
       else if (filterToRemove.startsWith("Giá đến:")) newFilters.priceMax = "";
-      updateAppliedFilters(newFilters.category, newFilters.brand, newFilters.priceMin, newFilters.priceMax);
+      else if (filterToRemove === "Sản phẩm khuyến mại") newFilters.hasDiscount = false; // Xóa bộ lọc khuyến mại
+      updateAppliedFilters(newFilters.category, newFilters.brand, newFilters.priceMin, newFilters.priceMax, newFilters.hasDiscount);
       fetchProducts(page, newFilters);
       return newFilters;
     });
@@ -201,6 +209,7 @@ const Product = () => {
       brand: [],
       priceMin: "",
       priceMax: "",
+      hasDiscount: false, // Reset hasDiscount
     };
     setFilters(newFilters);
     setSort("");
@@ -220,12 +229,13 @@ const Product = () => {
 
   const applyFilters = () => {
     setPage(0);
-    updateAppliedFilters(filters.category, filters.brand, filters.priceMin, filters.priceMax);
+    updateAppliedFilters(filters.category, filters.brand, filters.priceMin, filters.priceMax, filters.hasDiscount);
     const params = new URLSearchParams();
     if (filters.category.length > 0) params.set("category", filters.category.join(","));
     if (filters.brand.length > 0) params.set("brand", filters.brand.join(","));
     if (filters.priceMin) params.set("priceMin", filters.priceMin);
     if (filters.priceMax) params.set("priceMax", filters.priceMax);
+    if (filters.hasDiscount) params.set("hasDiscount", filters.hasDiscount.toString()); // Thêm hasDiscount vào params
     if (sort) params.set("sort", sort);
     params.set("page", "0");
     setSearchParams(params);
@@ -332,6 +342,24 @@ const Product = () => {
                       </Text>
                     </HStack>
                   </VStack>
+                </AccordionPanel>
+              </AccordionItem>
+
+              {/* Thêm bộ lọc Sản phẩm khuyến mại */}
+              <AccordionItem>
+                <AccordionButton _hover={{ bg: "gray.100" }}>
+                  <Box flex="1" textAlign="left">
+                    <Text fontWeight="bold">Khuyến mại</Text>
+                  </Box>
+                  <Box as={ChevronDown} size={20} transition="transform 0.2s" transform="rotate(0deg)" _expanded={{ transform: "rotate(180deg)" }} />
+                </AccordionButton>
+                <AccordionPanel pb={4}>
+                  <Checkbox
+                    isChecked={filters.hasDiscount}
+                    onChange={(e) => handleFilterChange("hasDiscount")(e.target.checked)}
+                  >
+                    Sản phẩm khuyến mại
+                  </Checkbox>
                 </AccordionPanel>
               </AccordionItem>
 
