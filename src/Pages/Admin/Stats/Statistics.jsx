@@ -54,7 +54,13 @@ const Statistics = () => {
 
   // Bộ lọc
   const [startDate, setStartDate] = useState("2025-01-01");
-  const [endDate, setEndDate] = useState("2025-04-10");
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`; // Ví dụ: "2025-04-12"
+  });
   const [groupBy, setGroupBy] = useState("month");
 
   // Màu sắc cho biểu đồ
@@ -269,11 +275,16 @@ const Statistics = () => {
         label: "Doanh thu (VNĐ)",
         data: brandRevenueData.map((item) => item.value),
         backgroundColor: [
-          "rgba(255, 99, 132, 0.6)",
-          "rgba(54, 162, 235, 0.6)",
-          "rgba(255, 206, 86, 0.6)",
-          "rgba(75, 192, 192, 0.6)",
-          "rgba(153, 102, 255, 0.6)",
+          "rgba(255, 99, 132, 0.6)",  // Đỏ
+          "rgba(54, 162, 235, 0.6)",  // Xanh dương
+          "rgba(255, 206, 86, 0.6)",  // Vàng
+          "rgba(75, 192, 192, 0.6)",  // Xanh lam
+          "rgba(153, 102, 255, 0.6)", // Tím
+          "rgba(255, 159, 64, 0.6)",  // Cam
+          "rgba(201, 203, 207, 0.6)", // Xám
+          "rgba(255, 99, 132, 0.6)",  // Lặp lại màu đỏ
+          "rgba(54, 162, 235, 0.6)",  // Lặp lại màu xanh dương
+          "rgba(255, 206, 86, 0.6)",  // Lặp lại màu vàng
         ],
         borderColor: [
           "rgba(255, 99, 132, 1)",
@@ -281,6 +292,11 @@ const Statistics = () => {
           "rgba(255, 206, 86, 1)",
           "rgba(75, 192, 192, 1)",
           "rgba(153, 102, 255, 1)",
+          "rgba(255, 159, 64, 1)",
+          "rgba(201, 203, 207, 1)",
+          "rgba(255, 99, 132, 1)",
+          "rgba(54, 162, 235, 1)",
+          "rgba(255, 206, 86, 1)",
         ],
         borderWidth: 1,
       },
@@ -292,7 +308,7 @@ const Statistics = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false, // Tắt legend mặc định vì đã có chú thích bên phải
+        display: false,
       },
       tooltip: {
         callbacks: {
@@ -335,7 +351,7 @@ const Statistics = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false, // Tắt legend mặc định vì đã có chú thích bên phải
+        display: false,
       },
       tooltip: {
         callbacks: {
@@ -442,11 +458,15 @@ const Statistics = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false, // Tắt legend mặc định vì đã có chú thích bên phải
+        display: false,
       },
       tooltip: {
         callbacks: {
-          label: (context) => `${context.label}: ${context.raw.toLocaleString()} VNĐ`,
+          label: (context) => {
+            const index = context.dataIndex;
+            const quantitySold = topProductsData[index]?.quantitySold || 0;
+            return `${context.label}: ${context.raw.toLocaleString()} VNĐ (Bán: ${quantitySold})`;
+          },
         },
       },
     },
@@ -501,34 +521,42 @@ const Statistics = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false, // Tắt legend mặc định vì đã có chú thích bên phải
+        display: false,
       },
       tooltip: {
         callbacks: {
-          label: (context) => `${context.label}: ${context.raw.toLocaleString()} VNĐ`,
+          label: (context) => {
+            const index = context.dataIndex;
+            const quantitySold = topVariantsData[index]?.quantitySold || 0;
+            return `${context.label}: ${context.raw.toLocaleString()} VNĐ (Bán: ${quantitySold})`;
+          },
         },
       },
     },
   };
 
   // Hàm render chú thích (Legend) cho các biểu đồ Pie và Polar Area
-  const renderLegend = (labels, data, colors) => {
+  const renderLegend = (labels, data, colors, items) => {
     return (
       <VStack align="start" spacing={2} w="100%">
-        {labels.map((label, index) => (
-          <HStack key={index} spacing={2}>
-            <Box w="12px" h="12px" bg={colors[index]} borderRadius="3px" />
-            <Text fontSize="sm">
-              {label}: {data[index]?.toLocaleString()} VNĐ
-            </Text>
-          </HStack>
-        ))}
+        {labels.map((label, index) => {
+          const quantitySold = items && items[index]?.quantitySold ? items[index].quantitySold : null;
+          return (
+            <HStack key={index} spacing={2}>
+              <Box w="12px" h="12px" bg={colors[index]} borderRadius="3px" />
+              <Text fontSize="sm">
+                {label}: {data[index]?.toLocaleString()} VNĐ
+                {quantitySold !== null ? ` (Bán: ${quantitySold})` : ""}
+              </Text>
+            </HStack>
+          );
+        })}
       </VStack>
     );
   };
 
   // Chiều cao cố định cho container của mỗi tab
-  const tabContainerHeight = "650px"; // Đặt chiều cao cố định, bao gồm padding
+  const tabContainerHeight = "650px";
 
   return (
     <Box p={{ base: 4, md: 6 }} mx="auto" w="100%">
@@ -564,13 +592,70 @@ const Statistics = () => {
 
         {/* Tabs chứa các biểu đồ */}
         <Tabs variant="enclosed">
-          <TabList>
-            <Tab>Doanh thu theo thời gian</Tab>
-            <Tab>Doanh thu theo thương hiệu</Tab>
-            <Tab>Doanh thu theo phương thức thanh toán</Tab>
-            <Tab>Giao dịch với nhà cung cấp</Tab>
-            <Tab>Top 10 sản phẩm</Tab>
-            <Tab>Top 10 biến thể</Tab>
+          <TabList
+            flexWrap="wrap"
+            gap={2}
+          >
+            <Tab
+              flexShrink={0}
+              minW={{ base: "150px", md: "auto" }}
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="normal"
+              py={2}
+              px={4}
+            >
+              Doanh thu theo thời gian
+            </Tab>
+            <Tab
+              flexShrink={0}
+              minW={{ base: "150px", md: "auto" }}
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="normal"
+              py={2}
+              px={4}
+            >
+              Doanh thu theo thương hiệu
+            </Tab>
+            <Tab
+              flexShrink={0}
+              minW={{ base: "150px", md: "auto" }}
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="normal"
+              py={2}
+              px={4}
+            >
+              Doanh thu theo phương thức thanh toán
+            </Tab>
+            <Tab
+              flexShrink={0}
+              minW={{ base: "150px", md: "auto" }}
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="normal"
+              py={2}
+              px={4}
+            >
+              Giao dịch với nhà cung cấp
+            </Tab>
+            <Tab
+              flexShrink={0}
+              minW={{ base: "150px", md: "auto" }}
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="normal"
+              py={2}
+              px={4}
+            >
+              Top 10 sản phẩm
+            </Tab>
+            <Tab
+              flexShrink={0}
+              minW={{ base: "150px", md: "auto" }}
+              fontSize={{ base: "sm", md: "md" }}
+              whiteSpace="normal"
+              py={2}
+              px={4}
+            >
+              Top 10 biến thể
+            </Tab>
           </TabList>
 
           <TabPanels>
@@ -628,7 +713,6 @@ const Statistics = () => {
                     justify="space-between"
                     flexWrap={{ base: "wrap", md: "nowrap" }}
                   >
-                    {/* Biểu đồ bên trái */}
                     <Box
                       height={{ base: "400px", md: "500px" }}
                       w={{ base: "100%", md: "50%" }}
@@ -637,7 +721,6 @@ const Statistics = () => {
                     >
                       <PolarArea data={brandChartData} options={brandChartOptions} />
                     </Box>
-                    {/* Chú thích bên phải */}
                     <Box
                       w={{ base: "100%", md: "40%" }}
                       maxH={{ base: "auto", md: "500px" }}
@@ -680,7 +763,6 @@ const Statistics = () => {
                     justify="space-around"
                     flexWrap={{ base: "wrap", md: "nowrap" }}
                   >
-                    {/* Biểu đồ bên trái */}
                     <Box
                       height={{ base: "400px", md: "500px" }}
                       w={{ base: "100%", md: "50%" }}
@@ -689,7 +771,6 @@ const Statistics = () => {
                     >
                       <Pie data={paymentMethodChartData} options={paymentMethodChartOptions} />
                     </Box>
-                    {/* Chú thích bên phải */}
                     <Box
                       w={{ base: "100%", md: "40%" }}
                       maxH={{ base: "auto", md: "500px" }}
@@ -763,7 +844,6 @@ const Statistics = () => {
                     justify="space-around"
                     flexWrap={{ base: "wrap", md: "nowrap" }}
                   >
-                    {/* Biểu đồ bên trái */}
                     <Box
                       height={{ base: "400px", md: "500px" }}
                       w={{ base: "100%", md: "50%" }}
@@ -772,7 +852,6 @@ const Statistics = () => {
                     >
                       <PolarArea data={topProductsChartData} options={topProductsChartOptions} />
                     </Box>
-                    {/* Chú thích bên phải */}
                     <Box
                       w={{ base: "100%", md: "40%" }}
                       maxH={{ base: "auto", md: "500px" }}
@@ -782,7 +861,8 @@ const Statistics = () => {
                       {renderLegend(
                         topProductsChartData.labels,
                         topProductsChartData.datasets[0].data,
-                        topProductsChartData.datasets[0].backgroundColor
+                        topProductsChartData.datasets[0].backgroundColor,
+                        topProductsData
                       )}
                     </Box>
                   </HStack>
@@ -815,7 +895,6 @@ const Statistics = () => {
                     justify="space-around"
                     flexWrap={{ base: "wrap", md: "nowrap" }}
                   >
-                    {/* Biểu đồ bên trái */}
                     <Box
                       height={{ base: "400px", md: "500px" }}
                       w={{ base: "100%", md: "50%" }}
@@ -824,7 +903,6 @@ const Statistics = () => {
                     >
                       <Pie data={topVariantsChartData} options={topVariantsChartOptions} />
                     </Box>
-                    {/* Chú thích bên phải */}
                     <Box
                       w={{ base: "100%", md: "40%" }}
                       maxH={{ base: "auto", md: "500px" }}
@@ -834,7 +912,8 @@ const Statistics = () => {
                       {renderLegend(
                         topVariantsChartData.labels,
                         topVariantsChartData.datasets[0].data,
-                        topVariantsChartData.datasets[0].backgroundColor
+                        topVariantsChartData.datasets[0].backgroundColor,
+                        topVariantsData
                       )}
                     </Box>
                   </HStack>

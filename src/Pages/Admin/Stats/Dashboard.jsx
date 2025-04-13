@@ -65,7 +65,7 @@ const Dashboard = ({ setActiveMenu }) => { // Thêm prop setActiveMenu từ pare
         setStats(statsResponse.data);
 
         const startDate = "2025-01-01";
-        const endDate = "2025-03-31";
+        const endDate = "2025-04-11";
         const revenueResponse = await axiosInstance.get("/api/statistics/revenue", {
           params: { type: "time", startDate, endDate, groupBy: "week" },
         });
@@ -219,6 +219,7 @@ const Dashboard = ({ setActiveMenu }) => { // Thêm prop setActiveMenu từ pare
             boxShadow="sm"
             w={{ base: "100%", md: "70%" }}
             position="relative"
+            display={{ base: "none", md: "block" }} // Ẩn ở mobile, hiển thị từ md trở lên
           >
             {weeklyRevenueData.length > 0 ? (
               <Line

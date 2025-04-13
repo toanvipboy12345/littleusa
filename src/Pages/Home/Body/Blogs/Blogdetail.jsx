@@ -13,15 +13,26 @@ import {
   BreadcrumbItem,
   Flex,
   BreadcrumbLink,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import axiosInstance from "../../../../Api/axiosInstance";
+import useDocumentTitle from "../../../../hook/useDocumentTitle";
 import { useParams, Link } from "react-router-dom";
 
 const BlogDetail = () => {
   const { id } = useParams();
   const [blog, setBlog] = useState(null);
   const toast = useToast();
-  const BASE_URL = "http://localhost:8080";
+  const BASE_URL = "http://localhost:8080"; // Base URL của backend
+
+  // Sử dụng useDocumentTitle để cập nhật tiêu đề trang
+  useDocumentTitle(blog ? `${blog.title} - LITTLEUSA` : "Đang tải bài viết...");
+
+  // Responsive font sizes và spacing
+  const headingSize = useBreakpointValue({ base: "md", md: "lg", lg: "xl" }); // Giảm kích thước trên mobile và tablet
+  const textSize = useBreakpointValue({ base: "sm", md: "md", lg: "lg" });
+  const breadcrumbFontSize = useBreakpointValue({ base: "xs", md: "sm", lg: "md" }); // Responsive cho Breadcrumb
+  const breadcrumbSpacing = useBreakpointValue({ base: "4px", md: "8px" }); // Khoảng cách giữa các item trong Breadcrumb
 
   useEffect(() => {
     fetchBlogDetail();
@@ -53,11 +64,19 @@ const BlogDetail = () => {
     });
   };
 
-  // Hàm xử lý ký tự đặc biệt, bao gồm &nbsp;
+  // Hàm xử lý ký tự đặc biệt, bao gồm non-breaking space
   const cleanText = (text) => {
     if (typeof text !== "string") return text;
-    // Thay thế &nbsp; (HTML entity) và \u00A0 (Unicode non-breaking space) thành khoảng trắng
-    return text.replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ");
+    return text.replace(/\u00A0/g, " ");
+  };
+
+  // Hàm thêm base URL vào các URL ảnh trong nội dung
+  const addBaseUrlToImage = (url) => {
+    if (!url) return url;
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    return `${BASE_URL}${url}`;
   };
 
   // Hàm render nội dung từ EditorJS
@@ -91,7 +110,7 @@ const BlogDetail = () => {
             <Heading
               key={index}
               as={`h${block.data.level}`}
-              size={block.data.level === 1 ? "xl" : block.data.level === 2 ? "lg" : "md"}
+              size={block.data.level === 1 ? headingSize : block.data.level === 2 ? "lg" : "md"}
               mt={4}
               mb={2}
               color="var(--primary-color)"
@@ -101,7 +120,7 @@ const BlogDetail = () => {
           );
         case "paragraph":
           return (
-            <Text key={index} fontSize="md" color="gray.800" mb={4}>
+            <Text key={index} fontSize={textSize} color="gray.800" mb={4}>
               {cleanText(block.data.text)}
             </Text>
           );
@@ -109,7 +128,7 @@ const BlogDetail = () => {
           return block.data.style === "ordered" ? (
             <Box as="ol" pl={4} mb={4} key={index}>
               {block.data.items.map((item, i) => (
-                <Text as="li" key={i} fontSize="md" color="gray.800">
+                <Text as="li" key={i} fontSize={textSize} color="gray.800">
                   {cleanText(item.content)}
                 </Text>
               ))}
@@ -117,7 +136,7 @@ const BlogDetail = () => {
           ) : (
             <Box as="ul" pl={4} mb={4} key={index}>
               {block.data.items.map((item, i) => (
-                <Text as="li" key={i} fontSize="md" color="gray.800">
+                <Text as="li" key={i} fontSize={textSize} color="gray.800">
                   {cleanText(item.content)}
                 </Text>
               ))}
@@ -127,12 +146,13 @@ const BlogDetail = () => {
           return (
             <Image
               key={index}
-              src={block.data.url}
+              src={addBaseUrlToImage(block.data.url)}
               alt={block.data.caption || "Blog image"}
-              maxW="100%"
+              maxW="50%"
               my={4}
-              borderRadius="md"
               boxShadow="sm"
+              mx="auto"
+              objectFit="cover"
             />
           );
         default:
@@ -154,7 +174,13 @@ const BlogDetail = () => {
   return (
     <Box py={{ base: 4, md: 8, lg: 20 }} px={{ base: 2, md: 4, lg: 8 }} mx="auto" w={{ base: "95%", md: "90%", lg: "80%" }}>
       {/* Breadcrumb */}
-      <Breadcrumb spacing="8px" separator="/" mb={{ base: 4, md: 6 }} fontSize={{ base: "sm", md: "md" }} w={{ base: "100%", md: "80%" }} mx="auto" >
+      <Breadcrumb
+        spacing={breadcrumbSpacing} // Responsive spacing
+        separator="/"
+        mb={{ base: 4, md: 6 }}
+        fontSize={breadcrumbFontSize} // Responsive font size
+        flexWrap="wrap" // Cho phép xuống dòng trên mobile
+      >
         <BreadcrumbItem>
           <BreadcrumbLink as={Link} to="/">
             Trang chủ
@@ -170,28 +196,32 @@ const BlogDetail = () => {
         </BreadcrumbItem>
       </Breadcrumb>
 
-      <Flex
-        direction="column" // Tương ứng với VStack (theo chiều dọc)
-        align="start" // Tương ứng với align="start" của VStack
-        gap={6} // Thay cho spacing={6} của VStack
-      >
-        <Heading as="h1" w={{ base: "100%", md: "80%" }} mx="auto" size="xl" color="var(--primary-color)">
+      <Flex direction="column" align="center" gap={{ base: 4, md: 6 }} w="100%">
+        <Heading
+          as="h2"
+          size={headingSize} // Kích thước đã được điều chỉnh cho mobile và tablet
+          color="var(--primary-color)"
+          textAlign={{ base: "left", md: "left" }}
+          w="100%"
+        >
           {blog.title}
         </Heading>
-        <Text fontSize="sm" color="gray.500" w={{ base: "100%", md: "80%" }} mx="auto">
+        <Text fontSize={textSize} color="gray.500" w="100%" textAlign="left">
           {formatDate(blog.createdAt)} | {blog.authorUsername}
         </Text>
         {blog.thumbnail && (
           <Image
             src={`${BASE_URL}${blog.thumbnail}`}
             alt={blog.title}
-            maxW={{ base: "100%", md: "80%" }}
+            maxW="100%"
+            maxH={{ base: "300px", md: "400px", lg: "550px" }}
             objectFit="cover"
+            boxShadow="sm"
             mx="auto"
           />
         )}
         {/* Hiển thị nội dung bài viết */}
-        <Box w={{ base: "100%", md: "80%" }} fontSize="md" lineHeight="tall" mx="auto">
+        <Box w="100%" fontSize={textSize} lineHeight="tall" mx="auto">
           {renderContent(blog.content)}
         </Box>
       </Flex>

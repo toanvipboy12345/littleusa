@@ -64,7 +64,8 @@ const EditCategory = ({ isOpen, onClose, category, onEditSuccess }) => {
         onEditSuccess(response.data);
       }
     } catch (error) {
-      const errorMessage = error.response?.data || "Không thể cập nhật danh mục.";
+      // Kiểm tra customMessage từ interceptor
+      const errorMessage = error.customMessage || error.response?.data || "Không thể cập nhật danh mục.";
       toast({
         title: "Lỗi",
         description:
@@ -72,6 +73,7 @@ const EditCategory = ({ isOpen, onClose, category, onEditSuccess }) => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right", // Đặt vị trí thông báo ở góc trên bên phải
       });
     }
   };

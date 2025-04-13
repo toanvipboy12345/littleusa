@@ -14,6 +14,7 @@ import {
   Stack,
   Button,
   useToast,
+  FormErrorMessage,
 } from "@chakra-ui/react";
 import { Edit2 } from "react-feather";
 import axiosInstance from "../../../Api/axiosInstance";
@@ -26,6 +27,7 @@ const EditSupplier = ({ isOpen, onClose, supplier, onEditSuccess }) => {
     address: "",
     phone: "",
   });
+  const [errors, setErrors] = useState({});
   const toast = useToast();
 
   // Update state when modal opens with supplier data
@@ -38,6 +40,7 @@ const EditSupplier = ({ isOpen, onClose, supplier, onEditSuccess }) => {
         address: supplier.address || "",
         phone: supplier.phone || "",
       });
+      setErrors({}); // Reset errors when modal opens
     }
   }, [supplier]);
 
@@ -45,11 +48,33 @@ const EditSupplier = ({ isOpen, onClose, supplier, onEditSuccess }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditedSupplier((prev) => ({ ...prev, [name]: value }));
+    // Xóa lỗi khi người dùng bắt đầu nhập
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors = {};
+    if (!editedSupplier.name.trim()) {
+      newErrors.name = "Tên nhà cung cấp là bắt buộc";
+    }
+    if (!editedSupplier.code.trim()) {
+      newErrors.code = "Mã nhà cung cấp là bắt buộc";
+    }
+    if (editedSupplier.phone && !/^\d{10,11}$/.test(editedSupplier.phone)) {
+      newErrors.phone = "Số điện thoại phải có 10-11 chữ số";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
 
     const supplierData = {
       name: editedSupplier.name,
@@ -74,13 +99,15 @@ const EditSupplier = ({ isOpen, onClose, supplier, onEditSuccess }) => {
         onEditSuccess(response.data);
       }
     } catch (error) {
-      const errorMessage = error.response?.data || "Không thể cập nhật nhà cung cấp.";
+      // Kiểm tra customMessage từ interceptor
+      const errorMessage = error.customMessage || error.response?.data || "Không thể cập nhật nhà cung cấp.";
       toast({
         title: "Lỗi",
         description: typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage),
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right", // Đặt vị trí thông báo ở góc trên bên phải
       });
     }
   };
@@ -94,7 +121,7 @@ const EditSupplier = ({ isOpen, onClose, supplier, onEditSuccess }) => {
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <Stack spacing={4}>
-              <FormControl isRequired>
+              <FormControl isRequired isInvalid={!!errors.name}>
                 <FormLabel color="var(--primary-color)">Tên nhà cung cấp</FormLabel>
                 <Input
                   name="name"
@@ -107,9 +134,10 @@ const EditSupplier = ({ isOpen, onClose, supplier, onEditSuccess }) => {
                   borderColor="var(--primary-color)"
                   _dark={{ bg: "gray.800", borderColor: "gray.600", color: "white", _placeholder: { color: "gray.400" } }}
                 />
+                <FormErrorMessage>{errors.name}</FormErrorMessage>
               </FormControl>
 
-              <FormControl isRequired>
+              <FormControl isRequired isInvalid={!!errors.code}>
                 <FormLabel color="var(--primary-color)">Mã nhà cung cấp</FormLabel>
                 <Input
                   name="code"
@@ -122,6 +150,7 @@ const EditSupplier = ({ isOpen, onClose, supplier, onEditSuccess }) => {
                   borderColor="var(--primary-color)"
                   _dark={{ bg: "gray.800", borderColor: "gray.600", color: "white", _placeholder: { color: "gray.400" } }}
                 />
+                <FormErrorMessage>{errors.code}</FormErrorMessage>
               </FormControl>
 
               <FormControl>
@@ -153,7 +182,7 @@ const EditSupplier = ({ isOpen, onClose, supplier, onEditSuccess }) => {
                 />
               </FormControl>
 
-              <FormControl>
+              <FormControl isInvalid={!!errors.phone}>
                 <FormLabel color="var(--primary-color)">Số điện thoại</FormLabel>
                 <Input
                   name="phone"
@@ -166,6 +195,7 @@ const EditSupplier = ({ isOpen, onClose, supplier, onEditSuccess }) => {
                   borderColor="var(--primary-color)"
                   _dark={{ bg: "gray.800", borderColor: "gray.600", color: "white", _placeholder: { color: "gray.400" } }}
                 />
+                <FormErrorMessage>{errors.phone}</FormErrorMessage>
               </FormControl>
             </Stack>
           </form>

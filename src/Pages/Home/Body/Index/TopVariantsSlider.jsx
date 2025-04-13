@@ -16,10 +16,19 @@ const TopVariantsSlider = () => {
   const fetchTopVariants = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.get("/api/statistics/top-variants", {
+      // Lấy ngày hiện tại theo múi giờ địa phương
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0"); // getMonth() trả về 0-11, nên +1
+      const day = String(now.getDate()).padStart(2, "0");
+      const currentDate = `${year}-${month}-${day}`; // Ví dụ: "2025-11-04"
+      console.log("Current Date:", currentDate);
+
+      // Thay đổi endpoint từ /top-variants sang /top-variants-quantity
+      const response = await axiosInstance.get("/api/statistics/top-variants-quantity", {
         params: {
-          startDate: "2025-01-01",
-          endDate: "2025-03-31",
+          startDate: "2025-01-01", // Ngày bắt đầu cố định
+          endDate: currentDate,    // Ngày kết thúc là ngày hiện tại
         },
       });
       if (Array.isArray(response.data)) {
@@ -29,7 +38,7 @@ const TopVariantsSlider = () => {
         setTopVariants([]);
       }
     } catch (error) {
-      console.error("Error fetching top variants:", error);
+      console.error("Error fetching top variants by quantity sold:", error);
       setTopVariants([]);
     } finally {
       setLoading(false);
@@ -61,12 +70,12 @@ const TopVariantsSlider = () => {
     <Box as="section" bg="transparent" py="30px" mt={2}>
       <Box maxW={{ base: "90%", md: "80%" }} mx="auto">
         <Heading
-          size={{ base: "md", md: "lg" }}
-          mb={6}
+              fontSize={{ base: "2rem", md: "2.5rem" }}
+              mb={6}
           textAlign="center"
           color="gray.800"
         >
-          Sản Phẩm Bán Chạy
+          SẢN PHẨM NỔI BẬT
         </Heading>
 
         {loading ? (
@@ -116,19 +125,19 @@ const TopVariantsSlider = () => {
               }}
               breakpoints={{
                 0: {
-                  slidesPerView: 2, // Mobile: 2 sản phẩm (gộp mobile nhỏ và lớn)
+                  slidesPerView: 2, // Mobile: 2 sản phẩm
                   spaceBetween: 10,
                 },
                 768: {
-                  slidesPerView: 4, // Tablet: 4 sản phẩm (giữ nguyên)
+                  slidesPerView: 4, // Tablet: 4 sản phẩm
                   spaceBetween: 20,
                 },
                 1024: {
-                  slidesPerView: 5, // Desktop nhỏ: 5 sản phẩm (giữ nguyên)
+                  slidesPerView: 5, // Desktop nhỏ: 5 sản phẩm
                   spaceBetween: 20,
                 },
                 1280: {
-                  slidesPerView: 7, // Desktop lớn: 7 sản phẩm (giữ nguyên)
+                  slidesPerView: 7, // Desktop lớn: 7 sản phẩm
                   spaceBetween: 20,
                 },
               }}
@@ -186,7 +195,7 @@ const TopVariantsSlider = () => {
                             justifyContent="center"
                             gap={2}
                           >
-                            {variant.discountRate === 0 ? (
+                            {variant.discountPrice === variant.price ? (
                               <Text
                                 color="gray.800"
                                 fontWeight="bold"
@@ -212,6 +221,13 @@ const TopVariantsSlider = () => {
                               </>
                             )}
                           </Box>
+                          <Text
+                            mt={1}
+                            fontSize={{ base: "xs", sm: "sm", md: "sm" }}
+                            color="gray.600"
+                          >
+                            Đã bán: {variant.quantitySold || 0}
+                          </Text>
                         </Box>
                       </Box>
                     </Link>

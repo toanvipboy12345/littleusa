@@ -38,6 +38,25 @@ const EditBlog = ({ isOpen, onClose, blog, onEditSuccess }) => {
   const editorRef = useRef(null);
   const toast = useToast();
 
+  // Hàm chuẩn hóa dữ liệu cho EditorJS
+  const normalizeEditorData = (blocks) => {
+    return blocks.map((block) => {
+      if (block.type === "image") {
+        return {
+          ...block,
+          data: {
+            file: {
+              url: block.data.url, // Chuyển URL từ data.url sang data.file.url
+            },
+            caption: block.data.caption || "",
+            alt: block.data.alt || block.data.caption || "",
+          },
+        };
+      }
+      return block;
+    });
+  };
+
   // Hàm khởi tạo EditorJS
   const initializeEditor = (data) => {
     if (!editorRef.current) {
@@ -73,6 +92,7 @@ const EditBlog = ({ isOpen, onClose, blog, onEditSuccess }) => {
           class: EditorImage,
           config: {
             uploader: {
+              // Upload ảnh mới
               async uploadByFile(file) {
                 const formData = new FormData();
                 formData.append("file", file);
@@ -101,6 +121,15 @@ const EditBlog = ({ isOpen, onClose, blog, onEditSuccess }) => {
                     success: 0,
                   };
                 }
+              },
+              // Hỗ trợ tải ảnh từ URL (dành cho ảnh được thêm mới qua URL)
+              async uploadByUrl(url) {
+                return {
+                  success: 1,
+                  file: {
+                    url: url,
+                  },
+                };
               },
             },
             endpoints: {
@@ -131,8 +160,12 @@ const EditBlog = ({ isOpen, onClose, blog, onEditSuccess }) => {
       let initialData = { blocks: [] };
       try {
         if (blog?.content) {
-          initialData = JSON.parse(blog.content);
-          console.log("Parsed blog content:", initialData);
+          const parsedData = JSON.parse(blog.content);
+          // Chuẩn hóa dữ liệu trước khi truyền vào EditorJS
+          initialData = {
+            blocks: normalizeEditorData(parsedData.blocks || []),
+          };
+          console.log("Normalized blog content for EditorJS:", initialData);
         } else {
           console.log("No content found in blog:", blog);
           toast({
@@ -244,48 +277,77 @@ const EditBlog = ({ isOpen, onClose, blog, onEditSuccess }) => {
         return;
       }
 
-      const blocks = editorData.blocks
-        .map((block) => {
-          switch (block.type) {
-            case "header":
-              return {
-                type: "header",
-                data: {
-                  text: block.data.text,
-                  level: block.data.level,
-                },
-              };
-            case "paragraph":
-              return {
-                type: "paragraph",
-                data: {
-                  text: block.data.text,
-                },
-              };
-            case "list":
-              return {
-                type: "list",
-                data: {
-                  style: block.data.style,
-                  items: block.data.items,
-                },
-              };
-            case "image":
-              return {
-                type: "image",
-                data: {
-                  url: block.data.file.url,
-                  caption: block.data.caption || "",
-                  alt: block.data.caption || "",
-                },
-              };
-            default:
-              return null;
-          }
-        })
-        .filter((block) => block !== null);
+      // Lấy dữ liệu gốc từ blog.content để bảo toàn các khối không được chỉnh sửa
+      let originalBlocks = [];
+      try {
+        if (blog?.content) {
+          const parsedContent = JSON.parse(blog.content);
+          originalBlocks = parsedContent.blocks || [];
+        }
+      } catch (error) {
+        console.error("Error parsing original blog content:", error);
+      }
 
-      const contentJson = JSON.stringify({ blocks });
+      // Xử lý các khối từ editorData, đồng thời bảo toàn các khối không được hỗ trợ
+      const updatedBlocks = editorData.blocks.map((block) => {
+        switch (block.type) {
+          case "header":
+            return {
+              type: "header",
+              data: {
+                text: block.data.text,
+                level: block.data.level,
+              },
+            };
+          case "paragraph":
+            return {
+              type: "paragraph",
+              data: {
+                text: block.data.text,
+              },
+            };
+          case "list":
+            return {
+              type: "list",
+              data: {
+                style: block.data.style,
+                items: block.data.items,
+              },
+            };
+          case "image":
+            return {
+              type: "image",
+              data: {
+                url: block.data.file?.url || block.data.url, // Chuyển từ data.file.url về data.url để tương thích với backend
+                caption: block.data.caption || "",
+                alt: block.data.alt || block.data.caption || "",
+              },
+            };
+          default: {
+            // Nếu gặp khối không được hỗ trợ, tìm trong originalBlocks để bảo toàn
+            const originalBlock = originalBlocks.find(
+              (origBlock) => origBlock.type === block.type
+            );
+            return originalBlock || null; // Giữ nguyên khối gốc nếu có, nếu không thì bỏ
+          }
+        }
+      }).filter((block) => block !== null);
+
+      // Thêm lại các khối gốc chưa được chỉnh sửa (nếu có)
+      const finalBlocks = [
+        ...updatedBlocks,
+        ...originalBlocks.filter(
+          (origBlock) =>
+            !updatedBlocks.some(
+              (updatedBlock) =>
+                updatedBlock.type === origBlock.type &&
+                updatedBlock.data?.text === origBlock.data?.text &&
+                updatedBlock.data?.url === origBlock.data?.url
+            )
+        ),
+      ];
+
+      const contentJson = JSON.stringify({ blocks: finalBlocks });
 
       const formData = new FormData();
       const blogData = {
@@ -324,7 +386,6 @@ const EditBlog = ({ isOpen, onClose, blog, onEditSuccess }) => {
       }
     } catch (error) {
       console.error("Error updating blog:", error);
-      // Sử dụng customMessage từ interceptor nếu có
       const errorMessage =
         error.customMessage || error.response?.data || "Không thể cập nhật bài viết.";
       toast({

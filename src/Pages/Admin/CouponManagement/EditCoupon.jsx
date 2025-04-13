@@ -60,8 +60,97 @@ const EditCoupon = ({ isOpen, onClose, coupon, onEditSuccess }) => {
     }));
   };
 
+  const validateForm = () => {
+    const requiredFields = [
+      { name: "code", label: "Mã giảm giá" },
+      { name: "discountRate", label: "Tỷ lệ giảm (%)" },
+      { name: "startDate", label: "Ngày bắt đầu" },
+      { name: "endDate", label: "Ngày kết thúc" },
+      { name: "maxUses", label: "Số lần sử dụng tối đa" },
+      { name: "status", label: "Trạng thái" },
+    ];
+
+    for (const field of requiredFields) {
+      if (!editedCoupon[field.name] || editedCoupon[field.name].toString().trim() === "") {
+        toast({
+          title: "Lỗi",
+          description: `Vui lòng nhập ${field.label}.`,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+        return false;
+      }
+    }
+
+    // Kiểm tra ngày kết thúc phải lớn hơn ngày bắt đầu
+    if (new Date(editedCoupon.endDate) <= new Date(editedCoupon.startDate)) {
+      toast({
+        title: "Lỗi",
+        description: "Ngày kết thúc phải lớn hơn ngày bắt đầu.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+      return false;
+    }
+
+    // Kiểm tra tỷ lệ giảm phải là số dương và không vượt quá 100
+    const discountRate = parseInt(editedCoupon.discountRate);
+    if (isNaN(discountRate) || discountRate <= 0 || discountRate > 100) {
+      toast({
+        title: "Lỗi",
+        description: "Tỷ lệ giảm phải là số dương và không vượt quá 100%.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+      return false;
+    }
+
+    // Kiểm tra số lần sử dụng tối đa phải là số dương
+    const maxUses = parseInt(editedCoupon.maxUses);
+    if (isNaN(maxUses) || maxUses <= 0) {
+      toast({
+        title: "Lỗi",
+        description: "Số lần sử dụng tối đa phải là số dương.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+      return false;
+    }
+
+    // Kiểm tra maxDiscountAmount nếu có giá trị thì phải là số dương
+    if (editedCoupon.maxDiscountAmount) {
+      const maxDiscountAmount = parseFloat(editedCoupon.maxDiscountAmount);
+      if (isNaN(maxDiscountAmount) || maxDiscountAmount <= 0) {
+        toast({
+          title: "Lỗi",
+          description: "Số tiền giảm tối đa phải là số dương.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Kiểm tra validation trước khi gửi request
+    if (!validateForm()) {
+      return;
+    }
 
     const couponData = {
       ...editedCoupon,
@@ -84,15 +173,18 @@ const EditCoupon = ({ isOpen, onClose, coupon, onEditSuccess }) => {
           position: "top-right",
         });
         onEditSuccess(response.data);
+        onClose(); // Đóng modal sau khi thành công
       }
     } catch (error) {
-      const errorMessage = error.response?.data || "Không thể cập nhật mã giảm giá.";
+      // Kiểm tra nếu lỗi là 403 và hiển thị custom message
+      const errorMessage = error.customMessage || error.response?.data || "Không thể cập nhật mã giảm giá.";
       toast({
         title: "Lỗi",
         description: typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage),
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right",
       });
     }
   };

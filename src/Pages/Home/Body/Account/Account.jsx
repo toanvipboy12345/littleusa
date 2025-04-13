@@ -24,6 +24,7 @@ import {
   HStack,
   Spinner,
 } from "@chakra-ui/react";
+import { Link } from "react-router-dom";
 import Order from "./Order/Order";
 
 // Component hiển thị danh sách mã giảm giá của người dùng
@@ -35,7 +36,6 @@ const MyCoupons = ({ userId }) => {
   const fetchUserCoupons = async () => {
     setLoading(true);
     try {
-      // Giả sử API endpoint là /api/coupons/user/{userId} để lấy mã giảm giá của người dùng
       const response = await axiosInstance.get(`/api/coupons/manage`);
       if (Array.isArray(response.data)) {
         setCoupons(response.data);
@@ -147,37 +147,61 @@ const MyCoupons = ({ userId }) => {
 const Account = () => {
   const { user, setUser } = useContext(UserContext);
   const [formData, setFormData] = useState({
-    firstName: user?.firstName || "",
-    lastName: user?.lastName || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
     city: "",
     country: "",
     district: "",
     ward: "",
-    street: user?.address?.street || "",
+    street: "",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Thêm trạng thái loading
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [wards, setWards] = useState([]);
   const toast = useToast();
 
   useEffect(() => {
-    setProvinces(vietnamProvinces);
-    if (user?.address) {
-      const { city, country, district, ward, street } = user.address;
-      setFormData((prev) => ({
-        ...prev,
-        city: city || "",
-        country: country || "",
-        district: district || "",
-        ward: ward || "",
-        street: street || "",
-      }));
+    // Kiểm tra và tải user từ localStorage nếu user trong UserContext là null
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser && !user) {
+      setUser(storedUser);
     }
-  }, [user]);
+
+    setProvinces(vietnamProvinces);
+
+    // Đồng bộ formData với user
+    if (user) {
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        city: user.address?.city || "",
+        country: user.address?.country || "",
+        district: user.address?.district || "",
+        ward: user.address?.ward || "",
+        street: user.address?.street || "",
+      });
+
+      // Cập nhật districts và wards nếu có dữ liệu city và district
+      if (user.address?.city) {
+        const selectedProvince = vietnamProvinces.find((p) => p.name === user.address.city);
+        setDistricts(selectedProvince?.districts || []);
+        if (user.address?.district) {
+          const selectedDistrict = selectedProvince?.districts.find((d) => d.name === user.address.district);
+          setWards(selectedDistrict?.wards || []);
+        }
+      }
+      setIsLoading(false);
+    } else {
+      setIsLoading(false);
+    }
+  }, [user, setUser]);
 
   const handleProvinceChange = (e) => {
     const selectedProvince = provinces.find((p) => p.name === e.target.value);
@@ -247,6 +271,18 @@ const Account = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const initialData = {
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      city: user?.address?.city || "",
+      country: user?.address?.country || "",
+      district: user?.address?.district || "",
+      ward: user?.address?.ward || "",
+      street: user?.address?.street || "",
+    };
+
     const updatedAddress = {
       city: formData.city,
       country: formData.country,
@@ -255,11 +291,45 @@ const Account = () => {
       street: formData.street,
     };
 
-    try {
-      const response = await axiosInstance.put(`/user/${user.id}`, {
-        ...formData,
-        address: updatedAddress,
+    const changedFields = {};
+    const changedAddressFields = {};
+
+    Object.keys(formData).forEach((key) => {
+      if (key !== "city" && key !== "country" && key !== "district" && key !== "ward" && key !== "street") {
+        if (formData[key] !== initialData[key]) {
+          changedFields[key] = formData[key];
+        }
+      }
+    });
+
+    Object.keys(updatedAddress).forEach((key) => {
+      if (updatedAddress[key] !== initialData[key]) {
+        changedAddressFields[key] = updatedAddress[key];
+      }
+    });
+
+    if (Object.keys(changedAddressFields).length > 0) {
+      changedFields.address = changedAddressFields;
+    }
+
+    if (Object.keys(changedFields).length === 0) {
+      toast({
+        title: "Thông báo",
+        description: "Không có thay đổi nào để cập nhật.",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
       });
+      setIsSubmitting(false);
+      return;
+    }
+
+    const dataToSubmit = changedFields;
+
+    console.log("Thông tin người dùng gửi lên server (chỉ các trường đã thay đổi):", dataToSubmit);
+
+    try {
+      const response = await axiosInstance.put(`/user/${user.id}`, dataToSubmit);
       const updatedUser = response.data;
 
       setUser(updatedUser);
@@ -312,6 +382,14 @@ const Account = () => {
     });
   };
 
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minH="200px">
+        <Spinner size="lg" color="gray.800" />
+      </Box>
+    );
+  }
+
   return (
     <Box
       py={{ base: 6, md: 12, lg: 20 }}
@@ -323,7 +401,7 @@ const Account = () => {
         <TabList>
           <Tab>Thông tin tài khoản</Tab>
           <Tab>Đơn hàng của tôi</Tab>
-          <Tab>Mã giảm giá của tôi</Tab> {/* Tab mới */}
+          <Tab>Mã giảm giá của tôi</Tab>
         </TabList>
 
         <TabPanels>
@@ -483,13 +561,31 @@ const Account = () => {
                     </FormControl>
                     <Flex justify="flex-end" gap={3}>
                       {!isEditing ? (
-                        <Button
-                          colorScheme="blue"
-                          variant="outline"
-                          onClick={handleEdit}
-                        >
-                          Chỉnh sửa
-                        </Button>
+                        <>
+                          <Button
+                            colorScheme="blue"
+                            variant="outline"
+                            onClick={handleEdit}
+                          >
+                            Chỉnh sửa
+                          </Button>
+                          <Button
+                            as={Link}
+                            to="/ForgotPassword"
+                            colorScheme="blue"
+                            variant="solid"
+                          >
+                            Quên mật khẩu
+                          </Button>
+                          <Button
+                            as={Link}
+                            to="/ForgotPassword"
+                            colorScheme="blue"
+                            variant="solid"
+                          >
+                            Đổi mật khẩu
+                          </Button>
+                        </>
                       ) : (
                         <>
                           <Button
@@ -518,7 +614,7 @@ const Account = () => {
             <Order />
           </TabPanel>
           <TabPanel>
-            <MyCoupons userId={user?.id} /> {/* Truyền userId vào MyCoupons */}
+            <MyCoupons userId={user?.id} />
           </TabPanel>
         </TabPanels>
       </Tabs>

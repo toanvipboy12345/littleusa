@@ -12,14 +12,6 @@ import {
   Flex,
   Button,
   useToast,
-  Step,
-  StepIndicator,
-  StepStatus,
-  StepIcon,
-  StepNumber,
-  StepTitle,
-  Stepper,
-  StepSeparator,
   VStack,
   HStack,
   Image,
@@ -33,9 +25,11 @@ import {
   Input,
   FormControl,
   FormLabel,
+  Spinner,
 } from "@chakra-ui/react";
 import { useCart } from "../../../../../context/CartContext";
 import { UserContext } from "../../../../../context/UserContext";
+import { Clock, CheckCircle, Truck, Package } from "react-feather";
 
 const Order = () => {
   const { cartToken } = useCart();
@@ -44,22 +38,22 @@ const Order = () => {
   const [loading, setLoading] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
-  const [phoneNumber, setPhoneNumber] = useState(""); // State để lưu số điện thoại nhập vào
+  const [phoneNumber, setPhoneNumber] = useState("");
   const toast = useToast();
   const cancelRef = useRef();
 
   const steps = [
-    { title: "Đang chờ", status: "PENDING" },
-    { title: "Đã xác nhận", status: "CONFIRMED" },
-    { title: "Đã giao cho DVVC", status: "SHIPPED" },
-    { title: "Đã giao", status: "DELIVERED" },
+    { title: "Đang chờ", status: "PENDING", icon: <Clock size={16} /> },
+    { title: "Đã xác nhận", status: "CONFIRMED", icon: <CheckCircle size={16} /> },
+    { title: "Đang giao", status: "SHIPPED", icon: <Truck size={16} /> },
+    { title: "Đã giao", status: "DELIVERED", icon: <Package size={16} /> },
   ];
 
   const mapStatusToVietnamese = (status) => {
     const statusMap = {
       PENDING: "Đang chờ",
       CONFIRMED: "Xác nhận",
-      SHIPPED: "Đã giao cho đơn vị vận chuyển",
+      SHIPPED: "Đang vận chuyển",
       DELIVERED: "Đã giao",
       CANCELLED: "Đã hủy",
     };
@@ -70,7 +64,10 @@ const Order = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/api/orders/user/${user.id}`);
-      setOrders(response?.data || []);
+      const sortedOrders = (response?.data || []).sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt) // Sắp xếp giảm dần (mới nhất trước)
+      );
+      setOrders(sortedOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast({
@@ -100,7 +97,10 @@ const Order = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/api/orders/phone/${phoneNumber}`);
-      setOrders(response.data || []);
+      const sortedOrders = (response.data || []).sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setOrders(sortedOrders);
       if (response.data.length === 0) {
         toast({
           title: "Thông báo",
@@ -209,7 +209,11 @@ const Order = () => {
       ) : null}
 
       {loading ? (
-        <Text textAlign="center" color="gray.500">Đang tải...</Text>
+        <Box py={{ base: 4, md: 8, lg: 20 }} px={{ base: 2, md: 4, lg: 8 }} mx="auto" w={{ base: "95%", md: "90%", lg: "75%" }}>
+          <Flex justify="center" align="center" minH="500px">
+            <Spinner thickness="2px" speed="0.65s" emptyColor="gray.200" color="black" size="lg" />
+          </Flex>
+        </Box>
       ) : orders.length === 0 ? (
         <Text textAlign="center" color="gray.500">
           {user ? "Bạn chưa có đơn hàng nào." : "Không tìm thấy đơn hàng nào."}
@@ -314,28 +318,64 @@ const Order = () => {
 
               <AccordionPanel p={{ base: 3, md: 4 }} bg="gray.50" borderRadius="md">
                 <VStack align="start" spacing={4}>
-                  <Box w="100%" display={{ base: "none", md: "none", lg: "block" }}>
+                  <Box w="100%">
                     {order.status !== "CANCELLED" ? (
-                      <Stepper
-                        index={getActiveStep(order.status)}
-                        orientation="horizontal"
-                        size="sm"
-                        w="100%"
-                      >
-                        {steps.map((step, index) => (
-                          <Step key={index}>
-                            <StepIndicator>
-                              <StepStatus
-                                complete={isStepComplete(index, order.status) ? <StepIcon /> : null}
-                                incomplete={<StepNumber />}
-                                active={index === getActiveStep(order.status) ? <StepNumber /> : null}
-                              />
-                            </StepIndicator>
-                            <StepTitle fontSize={{ base: "xs", md: "sm" }}>{step.title}</StepTitle>
-                            <StepSeparator />
-                          </Step>
-                        ))}
-                      </Stepper>
+                      <Flex align="center" justify="space-between" position="relative" w="100%">
+                        {steps.map((step, index) => {
+                          const isActive = index === getActiveStep(order.status);
+                          const isCompleted = isStepComplete(index, order.status);
+                          return (
+                            <Flex
+                              key={index}
+                              direction="column"
+                              align="center"
+                              flex={1}
+                              position="relative"
+                              zIndex={1}
+                            >
+                              {/* Icon */}
+                              <Box
+                                p={2}
+                                borderRadius="full"
+                                bg={
+                                  isActive || isCompleted
+                                    ? "green.500"
+                                    : "gray.200"
+                                }
+                                color={isActive || isCompleted ? "white" : "gray.600"}
+                                mb={2}
+                              >
+                                {step.icon}
+                              </Box>
+                              {/* Title */}
+                              <Text
+                                fontSize={{ base: "xs", md: "sm" }}
+                                fontWeight={isActive ? "bold" : "normal"}
+                                color={isActive || isCompleted ? "green.600" : "gray.600"}
+                                textAlign="center"
+                              >
+                                {step.title}
+                              </Text>
+                              {/* Line connector */}
+                              {index < steps.length - 1 && (
+                                <Box
+                                  position="absolute"
+                                  top="16px" // Điều chỉnh vị trí cho icon nhỏ hơn (16px + padding 8px)
+                                  left="calc(50% + 20px)" // Điều chỉnh cho icon size={16}
+                                  right="calc(-50% + 20px)"
+                                  height="2px"
+                                  bg={
+                                    isCompleted || isStepComplete(index + 1, order.status)
+                                      ? "green.500"
+                                      : "gray.200"
+                                  }
+                                  zIndex={0}
+                                />
+                              )}
+                            </Flex>
+                          );
+                        })}
+                      </Flex>
                     ) : (
                       <Text color="red.500" fontSize="sm">Đơn hàng đã bị hủy</Text>
                     )}
@@ -365,24 +405,31 @@ const Order = () => {
                       {order.shippingAddress.city}, {order.shippingAddress.country}
                     </Text>
                   </Box>
-                  <HStack spacing={4} align="start" w="100%">
-                    <Flex direction="row" align="center" flex={1}>
+                  <VStack
+                    spacing={2}
+                    align="start"
+                    w="100%"
+                    direction={{ base: "column", md: "row" }} // Dọc trên mobile, ngang trên tablet/desktop
+                  >
+                    <Flex direction="row" align="center">
                       <Text fontWeight="bold" mr={2}>Phương thức vận chuyển:</Text>
                       <Text fontSize={{ base: "sm", md: "md" }}>
-                        {order.shippingMethod} (Phí: {order.shippingFee.toLocaleString()} VNĐ)
+                        {order.shippingMethod}
                       </Text>
                     </Flex>
-                    <Flex direction="row" align="center" flex={1}>
+                    <Flex direction="row" align="center">
                       <Text fontWeight="bold" mr={2}>Phương thức thanh toán:</Text>
-                      {order.paymentMethod.toUpperCase() === "COD" ? (
-                        <Text fontSize={{ base: "sm", md: "md" }}>Thanh toán khi nhận hàng</Text>
-                      ) : (
-                        <Text fontSize={{ base: "sm", md: "md" }}>
-                          {order.paymentMethod} - {order.paymentStatus}
-                        </Text>
-                      )}
+                      <Text fontSize={{ base: "sm", md: "md" }}>
+                        {order.paymentMethod.toUpperCase() === "COD" ? "Thanh toán khi nhận hàng" : order.paymentMethod}
+                      </Text>
                     </Flex>
-                  </HStack>
+                    <Flex direction="row" align="center">
+                      <Text fontWeight="bold" mr={2}>Mã giao dịch:</Text>
+                      <Text fontSize={{ base: "sm", md: "md" }}>
+                        {order.transactionId || "N/A"}
+                      </Text>
+                    </Flex>
+                  </VStack>
                   <HStack w="100%" justify="space-between" mt={4}>
                     <Text fontWeight="bold" fontSize={{ base: "sm", md: "md" }}>
                       Tổng cộng:

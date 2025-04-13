@@ -67,7 +67,7 @@ const BrandManagement = () => {
     } catch (error) {
       toast({
         title: "Lỗi",
-        description: "Không thể tải danh sách thương hiệu.",
+        description: error.customMessage || "Không thể tải danh sách thương hiệu.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -113,7 +113,7 @@ const BrandManagement = () => {
       } catch (error) {
         toast({
           title: "Lỗi",
-          description: "Không thể xóa thương hiệu.",
+          description: error.customMessage || "Không thể xóa thương hiệu.",
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -159,6 +159,17 @@ const BrandManagement = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
+  };
+
+  // Hàm định dạng ngày tháng
+  const formatDate = (dateString) => {
+    if (!dateString) return "Không có dữ liệu";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   return (
@@ -226,7 +237,7 @@ const BrandManagement = () => {
                   fontSize={{ base: "sm", md: "md" }}
                   whiteSpace="nowrap"
                   color="gray.600"
-                  _dark={{ color: "gray.300" }} // Đảm bảo màu chữ rõ ràng trong dark mode
+                  _dark={{ color: "gray.300" }}
                 >
                   Hiển thị:
                 </Text>
@@ -236,19 +247,19 @@ const BrandManagement = () => {
                   size={{ base: "sm", md: "md" }}
                   w={{ base: "100px", md: "120px" }}
                   borderColor="gray.300"
-                  color="gray.600" // Màu chữ mặc định trong light mode
+                  color="gray.600"
                   _dark={{
                     borderColor: "gray.600",
-                    color: "white", // Màu chữ trắng trong dark mode để rõ ràng
-                    bg: "gray.700", // Nền tối hơn trong dark mode
+                    color: "white",
+                    bg: "gray.700",
                   }}
                   sx={{
                     option: {
                       bg: "white",
                       color: "gray.600",
                       _dark: {
-                        bg: "gray.700", // Nền tối hơn trong dark mode
-                        color: "white", // Màu chữ trắng trong dark mode
+                        bg: "gray.700",
+                        color: "white",
                       },
                     },
                   }}
@@ -262,7 +273,7 @@ const BrandManagement = () => {
                   fontSize={{ base: "sm", md: "md" }}
                   whiteSpace="nowrap"
                   color="gray.600"
-                  _dark={{ color: "gray.300" }} // Đảm bảo màu chữ rõ ràng trong dark mode
+                  _dark={{ color: "gray.300" }}
                 >
                   thương hiệu/trang
                 </Text>
@@ -285,9 +296,10 @@ const BrandManagement = () => {
                   <Tr>
                     <Th w="5%">ID</Th>
                     <Th w="10%">Tên</Th>
-                    <Th w="55%">Mô tả</Th>
-                    <Th w="20%">Hình ảnh</Th>
-                    <Th w="10%">Thao tác</Th>
+                    <Th w="40%">Mô tả</Th>
+                    <Th w="15%">Hình ảnh</Th>
+                    <Th w="15%">Ngày tạo</Th>
+                    <Th w="15%">Thao tác</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -319,6 +331,7 @@ const BrandManagement = () => {
                           "Không có hình ảnh"
                         )}
                       </Td>
+                      <Td>{formatDate(brand.createdAt)}</Td>
                       <Td>
                         <Flex align="center" gap={2}>
                           <IconButton
@@ -379,6 +392,7 @@ const BrandManagement = () => {
                             Mô tả: {brand.description || "Không có mô tả"}
                           </Text>
                         </Tooltip>
+                        <Text fontSize="xs">Ngày tạo: {formatDate(brand.createdAt)}</Text>
                         {brand.image && (
                           <Image
                             src={`http://localhost:8080${brand.image}`}

@@ -170,8 +170,62 @@ const CouponManagement = () => {
             </Flex>
 
             <Box overflowX={{ base: "auto", md: "visible" }} display={{ base: "block", md: "block" }} w="100%">
-              <Table variant="simple" size={{ base: "sm", md: "md" }} display={{ base: "none", md: "table" }} w="100%"><Thead><Tr><Th w="5%">ID</Th><Th w="10%">Mã</Th><Th w="8%">Tỷ lệ giảm (%)</Th><Th w="10%">Giảm tối đa (VND)</Th><Th w="10%">Ngày bắt đầu</Th><Th w="10%">Ngày kết thúc</Th><Th w="8%">Số lần tối đa</Th><Th w="8%">Trạng thái</Th><Th w="12%">Áp dụng cho sản phẩm giảm giá</Th><Th w="8%">Thao tác</Th></Tr></Thead><Tbody>{paginatedCoupons.map((coupon) => (<Tr key={coupon.id}><Td>{coupon.id}</Td><Td>{coupon.code}</Td><Td>{coupon.discountRate}%</Td><Td>{coupon.maxDiscountAmount ? coupon.maxDiscountAmount.toLocaleString("vi-VN") : "Không giới hạn"}</Td><Td>{new Date(coupon.startDate).toLocaleDateString()}</Td><Td>{new Date(coupon.endDate).toLocaleDateString()}</Td><Td>{coupon.maxUses}</Td><Td>{coupon.status}</Td><Td>{coupon.applicableToDiscountedProducts ? "Có" : "Không"}</Td><Td><Flex align="center" gap={2}><IconButton icon={<Edit2 />} aria-label="Sửa mã giảm giá" onClick={() => handleEditOpen(coupon)} colorScheme="blue" variant="outline" size={{ base: "xs", md: "sm" }} /><IconButton icon={<Trash2 />} aria-label="Xóa mã giảm giá" onClick={() => handleDeleteOpen(coupon.id)} colorScheme="red" variant="outline" size={{ base: "xs", md: "sm" }} /></Flex></Td></Tr>))}</Tbody></Table>
+              {/* Table View: Comment cột "Áp dụng cho sản phẩm giảm giá" */}
+              <Table variant="simple" size={{ base: "sm", md: "md" }} display={{ base: "none", md: "table" }} w="100%">
+                <Thead>
+                  <Tr>
+                    <Th w="5%">ID</Th>
+                    <Th w="10%">Mã</Th>
+                    <Th w="8%">Tỷ lệ giảm (%)</Th>
+                    <Th w="10%">Giảm tối đa (VND)</Th>
+                    <Th w="10%">Ngày bắt đầu</Th>
+                    <Th w="10%">Ngày kết thúc</Th>
+                    <Th w="8%">Số lần tối đa</Th>
+                    <Th w="8%">Trạng thái</Th>
+                    {/* Comment cột "Áp dụng cho sản phẩm giảm giá" */}
+                    {/* <Th w="12%">Áp dụng cho sản phẩm giảm giá</Th> */}
+                    <Th w="8%">Thao tác</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {paginatedCoupons.map((coupon) => (
+                    <Tr key={coupon.id}>
+                      <Td>{coupon.id}</Td>
+                      <Td>{coupon.code}</Td>
+                      <Td>{coupon.discountRate}%</Td>
+                      <Td>{coupon.maxDiscountAmount ? coupon.maxDiscountAmount.toLocaleString("vi-VN") : "Không giới hạn"}</Td>
+                      <Td>{new Date(coupon.startDate).toLocaleDateString()}</Td>
+                      <Td>{new Date(coupon.endDate).toLocaleDateString()}</Td>
+                      <Td>{coupon.maxUses}</Td>
+                      <Td>{coupon.status}</Td>
+                      {/* Comment cột "Áp dụng cho sản phẩm giảm giá" */}
+                      {/* <Td>{coupon.applicableToDiscountedProducts ? "Có" : "Không"}</Td> */}
+                      <Td>
+                        <Flex align="center" gap={2}>
+                          <IconButton
+                            icon={<Edit2 />}
+                            aria-label="Sửa mã giảm giá"
+                            onClick={() => handleEditOpen(coupon)}
+                            colorScheme="blue"
+                            variant="outline"
+                            size={{ base: "xs", md: "sm" }}
+                          />
+                          <IconButton
+                            icon={<Trash2 />}
+                            aria-label="Xóa mã giảm giá"
+                            onClick={() => handleDeleteOpen(coupon.id)}
+                            colorScheme="red"
+                            variant="outline"
+                            size={{ base: "xs", md: "sm" }}
+                          />
+                        </Flex>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
 
+              {/* Card View: Comment dòng "Áp dụng cho sản phẩm giảm giá" */}
               <VStack spacing={4} align="stretch" display={{ base: "flex", md: "none" }} w="100%">
                 {paginatedCoupons.map((coupon) => (
                   <Box key={coupon.id} p={3} borderWidth="1px" borderRadius="md" bg="white" _dark={{ bg: "gray.800" }} w="100%">
@@ -185,11 +239,24 @@ const CouponManagement = () => {
                         <Text fontSize="sm">Ngày kết thúc: {new Date(coupon.endDate).toLocaleDateString()}</Text>
                         <Text fontSize="sm">Số lần tối đa: {coupon.maxUses}</Text>
                         <Text fontSize="sm">Trạng thái: {coupon.status}</Text>
-                        <Text fontSize="sm">Áp dụng cho sản phẩm giảm giá: {coupon.applicableToDiscountedProducts ? "Có" : "Không"}</Text>
+                        {/* Comment dòng "Áp dụng cho sản phẩm giảm giá" */}
+                        {/* <Text fontSize="sm">Áp dụng cho sản phẩm giảm giá: {coupon.applicableToDiscountedProducts ? "Có" : "Không"}</Text> */}
                       </VStack>
                       <VStack spacing={2}>
-                        <IconButton icon={<Edit2 />} aria-label="Sửa mã giảm giá" onClick={() => handleEditOpen(coupon)} variant="solid" size="sm" />
-                        <IconButton icon={<Trash2 />} aria-label="Xóa mã giảm giá" onClick={() => handleDeleteOpen(coupon.id)} variant="solid" size="sm" />
+                        <IconButton
+                          icon={<Edit2 />}
+                          aria-label="Sửa mã giảm giá"
+                          onClick={() => handleEditOpen(coupon)}
+                          variant="solid"
+                          size="sm"
+                        />
+                        <IconButton
+                          icon={<Trash2 />}
+                          aria-label="Xóa mã giảm giá"
+                          onClick={() => handleDeleteOpen(coupon.id)}
+                          variant="solid"
+                          size="sm"
+                        />
                       </VStack>
                     </Flex>
                   </Box>

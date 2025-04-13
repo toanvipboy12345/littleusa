@@ -30,8 +30,53 @@ const AddShippingMethod = ({ onAddSuccess }) => {
     }));
   };
 
+  const validateForm = () => {
+    const requiredFields = [
+      { name: "code", label: "Mã đơn vị vận chuyển" },
+      { name: "name", label: "Tên đơn vị vận chuyển" },
+      { name: "shippingFee", label: "Phí vận chuyển" },
+      { name: "status", label: "Trạng thái" },
+    ];
+
+    // Kiểm tra các trường bắt buộc không được để trống
+    for (const field of requiredFields) {
+      if (!newShippingMethod[field.name] || newShippingMethod[field.name].toString().trim() === "") {
+        toast({
+          title: "Lỗi",
+          description: `Vui lòng nhập ${field.label}.`,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+        return false;
+      }
+    }
+
+    // Kiểm tra phí vận chuyển phải là số dương
+    const shippingFee = parseFloat(newShippingMethod.shippingFee);
+    if (isNaN(shippingFee) || shippingFee <= 0) {
+      toast({
+        title: "Lỗi",
+        description: "Phí vận chuyển phải là số dương.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Kiểm tra validation trước khi gửi request
+    if (!validateForm()) {
+      return;
+    }
 
     const shippingMethodData = {
       ...newShippingMethod,
@@ -58,7 +103,8 @@ const AddShippingMethod = ({ onAddSuccess }) => {
         onAddSuccess(response.data);
       }
     } catch (error) {
-      const errorMessage = error.response?.data || "Không thể thêm đơn vị vận chuyển.";
+      // Kiểm tra nếu lỗi là 403 và hiển thị custom message
+      const errorMessage = error.customMessage || (error.response?.data || "Không thể thêm đơn vị vận chuyển.");
       toast({
         title: "Lỗi",
         description:
@@ -66,6 +112,7 @@ const AddShippingMethod = ({ onAddSuccess }) => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right",
       });
     }
   };

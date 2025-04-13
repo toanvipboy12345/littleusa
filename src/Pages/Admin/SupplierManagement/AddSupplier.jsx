@@ -9,6 +9,7 @@ import {
   useToast,
   VStack,
   Box,
+  FormErrorMessage,
 } from "@chakra-ui/react";
 import { Plus } from "react-feather";
 import axiosInstance from "../../../Api/axiosInstance";
@@ -21,17 +22,40 @@ const AddSupplier = ({ onAddSuccess }) => {
     address: "",
     phone: "",
   });
+  const [errors, setErrors] = useState({});
   const toast = useToast();
 
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewSupplier((prev) => ({ ...prev, [name]: value }));
+    // Xóa lỗi khi người dùng bắt đầu nhập
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors = {};
+    if (!newSupplier.name.trim()) {
+      newErrors.name = "Tên nhà cung cấp là bắt buộc";
+    }
+    if (!newSupplier.code.trim()) {
+      newErrors.code = "Mã nhà cung cấp là bắt buộc";
+    }
+    if (newSupplier.phone && !/^\d{10,11}$/.test(newSupplier.phone)) {
+      newErrors.phone = "Số điện thoại phải có 10-11 chữ số";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
 
     const supplierData = {
       name: newSupplier.name,
@@ -46,6 +70,7 @@ const AddSupplier = ({ onAddSuccess }) => {
 
       if (response.status === 201) {
         setNewSupplier({ name: "", code: "", contact: "", address: "", phone: "" });
+        setErrors({});
         toast({
           title: "Thành công",
           description: "Đã thêm nhà cung cấp mới.",
@@ -57,8 +82,8 @@ const AddSupplier = ({ onAddSuccess }) => {
         onAddSuccess(response.data);
       }
     } catch (error) {
-      const errorMessage =
-        error.response?.data || "Không thể thêm nhà cung cấp.";
+      // Kiểm tra customMessage từ interceptor
+      const errorMessage = error.customMessage || error.response?.data || "Không thể thêm nhà cung cấp.";
       toast({
         title: "Lỗi",
         description:
@@ -68,6 +93,7 @@ const AddSupplier = ({ onAddSuccess }) => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right",
       });
     }
   };
@@ -83,7 +109,7 @@ const AddSupplier = ({ onAddSuccess }) => {
       _dark={{ bg: "gray.900" }}
     >
       <VStack spacing={{ base: 4, md: 6 }} align="stretch">
-        <FormControl isRequired>
+        <FormControl isRequired isInvalid={!!errors.name}>
           <FormLabel
             color="var(--primary-color)"
             _dark={{ color: "white" }}
@@ -114,9 +140,10 @@ const AddSupplier = ({ onAddSuccess }) => {
               boxShadow: "0 0 0 1px var(--primary-color)",
             }}
           />
+          <FormErrorMessage>{errors.name}</FormErrorMessage>
         </FormControl>
 
-        <FormControl isRequired>
+        <FormControl isRequired isInvalid={!!errors.code}>
           <FormLabel
             color="var(--primary-color)"
             _dark={{ color: "white" }}
@@ -147,6 +174,7 @@ const AddSupplier = ({ onAddSuccess }) => {
               boxShadow: "0 0 0 1px var(--primary-color)",
             }}
           />
+          <FormErrorMessage>{errors.code}</FormErrorMessage>
         </FormControl>
 
         <FormControl>
@@ -216,7 +244,7 @@ const AddSupplier = ({ onAddSuccess }) => {
           />
         </FormControl>
 
-        <FormControl>
+        <FormControl isInvalid={!!errors.phone}>
           <FormLabel
             color="var(--primary-color)"
             _dark={{ color: "white" }}
@@ -247,6 +275,7 @@ const AddSupplier = ({ onAddSuccess }) => {
               boxShadow: "0 0 0 1px var(--primary-color)",
             }}
           />
+          <FormErrorMessage>{errors.phone}</FormErrorMessage>
         </FormControl>
 
         <Button

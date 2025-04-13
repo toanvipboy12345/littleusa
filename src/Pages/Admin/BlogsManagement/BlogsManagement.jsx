@@ -29,7 +29,7 @@ import {
   HStack,
   VStack,
   Text,
-  Select, // Thêm Select từ Chakra UI
+  Select,
 } from "@chakra-ui/react";
 import { Trash2, Edit2, Search, ChevronLeft, ChevronRight } from "react-feather";
 import AddBlog from "./AddBlog";
@@ -37,11 +37,12 @@ import EditBlog from "./EditBlog";
 import { useDisclosure } from "@chakra-ui/react";
 
 const BlogsManagement = () => {
-  const [blogs, setBlogs] = useState([]);
+  const [blogs, setBlogs] = useState([]); // Danh sách bài viết gốc
+  const [filteredBlogs, setFilteredBlogs] = useState([]); // Danh sách bài viết đã lọc
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5); // Thay đổi từ const thành state, mặc định là 5
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const toast = useToast();
 
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -56,13 +57,13 @@ const BlogsManagement = () => {
     fetchBlogs();
   }, []);
 
-  const fetchBlogs = async (search = "") => {
+  // Lấy danh sách bài viết từ API (chỉ gọi 1 lần khi component mount)
+  const fetchBlogs = async () => {
     try {
-      const response = await axiosInstance.get(
-        `/api/blogs${search ? `?search=${encodeURIComponent(search)}` : ""}`
-      );
+      const response = await axiosInstance.get("/api/blogs");
       console.log("Blogs from API:", response.data);
       setBlogs(response.data);
+      setFilteredBlogs(response.data); // Ban đầu, filteredBlogs giống blogs
       setCurrentPage(1);
     } catch (error) {
       toast({
@@ -75,13 +76,20 @@ const BlogsManagement = () => {
     }
   };
 
+  // Xử lý tìm kiếm theo tiêu đề phía client
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    fetchBlogs(value);
+
+    // Lọc bài viết dựa trên tiêu đề
+    const filtered = blogs.filter((blog) =>
+      blog.title.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredBlogs(filtered);
+    setCurrentPage(1); // Reset về trang 1 khi tìm kiếm
   };
 
-  // Hàm handleItemsPerPageChange: Xử lý khi người dùng thay đổi số lượng hiển thị trên mỗi trang
+  // Xử lý thay đổi số lượng bài viết hiển thị trên mỗi trang
   const handleItemsPerPageChange = (e) => {
     const newItemsPerPage = parseInt(e.target.value);
     setItemsPerPage(newItemsPerPage);
@@ -97,7 +105,9 @@ const BlogsManagement = () => {
     if (blogIdToDelete) {
       try {
         await axiosInstance.delete(`/api/blogs/${blogIdToDelete}?userId=1`);
-        setBlogs(blogs.filter((blog) => blog.id !== blogIdToDelete));
+        const updatedBlogs = blogs.filter((blog) => blog.id !== blogIdToDelete);
+        setBlogs(updatedBlogs);
+        setFilteredBlogs(updatedBlogs); // Cập nhật cả filteredBlogs sau khi xóa
         toast({
           title: "Thành công",
           description: "Đã xóa bài viết.",
@@ -135,21 +145,26 @@ const BlogsManagement = () => {
   };
 
   const handleAddSuccess = (newBlogData) => {
-    setBlogs([...blogs, newBlogData]);
+    const updatedBlogs = [...blogs, newBlogData];
+    setBlogs(updatedBlogs);
+    setFilteredBlogs(updatedBlogs); // Cập nhật filteredBlogs sau khi thêm
     setActiveTab(0);
   };
 
   const handleEditSuccess = (updatedBlog) => {
-    setBlogs(
-      blogs.map((blog) => (blog.id === updatedBlog.id ? updatedBlog : blog))
+    const updatedBlogs = blogs.map((blog) =>
+      blog.id === updatedBlog.id ? updatedBlog : blog
     );
+    setBlogs(updatedBlogs);
+    setFilteredBlogs(updatedBlogs); // Cập nhật filteredBlogs sau khi chỉnh sửa
     onEditClose();
   };
 
+  // Phân trang dựa trên filteredBlogs thay vì blogs
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const paginatedBlogs = blogs.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(blogs.length / itemsPerPage);
+  const paginatedBlogs = filteredBlogs.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBlogs.length / itemsPerPage);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -178,8 +193,8 @@ const BlogsManagement = () => {
       p={{ base: 2, md: 4 }}
       mx="auto"
       maxW={{ base: "100%" }}
-      w="100%" // Đảm bảo chiều rộng đầy đủ
-      overflowX="hidden" // Ngăn tràn ngang
+      w="100%"
+      overflowX="hidden"
     >
       <Tabs index={activeTab} onChange={(index) => setActiveTab(index)}>
         <TabList
@@ -210,7 +225,7 @@ const BlogsManagement = () => {
               w="100%"
             >
               <Input
-                placeholder="Tìm kiếm bài viết..."
+                placeholder="Tìm kiếm bài viết theo tiêu đề..."
                 value={searchTerm}
                 onChange={handleSearch}
                 leftIcon={<Search size={20} />}
@@ -332,7 +347,7 @@ const BlogsManagement = () => {
                             size={{ base: "xs", md: "sm" }}
                           />
                           <IconButton
-                            icon={<Trash2 size={{ base: 16, md: 18 }} />}
+                            icon={<Trash2 size={{ base: 16, md: `18` }} />}
                             aria-label="Xóa bài viết"
                             onClick={() => handleDeleteOpen(blog.id)}
                             variant="outline"
@@ -399,7 +414,7 @@ const BlogsManagement = () => {
               </VStack>
             </Box>
 
-            {blogs.length > 0 && (
+            {filteredBlogs.length > 0 && (
               <Flex
                 direction={{ base: "column", md: "row" }}
                 justify={{ base: "center", md: "space-between" }}
@@ -430,7 +445,7 @@ const BlogsManagement = () => {
                   />
                 </HStack>
                 <Text fontSize={{ base: "sm", md: "md" }}>
-                  Tổng: {blogs.length} bài viết
+                  Tổng: {filteredBlogs.length} bài viết
                 </Text>
               </Flex>
             )}

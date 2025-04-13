@@ -79,7 +79,8 @@ const AddCoupon = ({ onAddSuccess }) => {
         onAddSuccess(response.data);
       }
     } catch (error) {
-      const errorMessage = error.response?.data || "Không thể thêm mã giảm giá.";
+      // Kiểm tra nếu lỗi là 403 và hiển thị custom message
+      const errorMessage = error.customMessage || error.response?.data || "Không thể thêm mã giảm giá.";
       toast({
         title: "Lỗi",
         description:
@@ -87,6 +88,7 @@ const AddCoupon = ({ onAddSuccess }) => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right",
       });
     }
   };
@@ -340,13 +342,7 @@ const AddCoupon = ({ onAddSuccess }) => {
             !newCoupon.maxUses ||
             !newCoupon.status
           }
-          bg="var(--primary-color)"
-          color="var(--text-color)"
-          size="md"
-          w={{ base: "full", md: "auto" }}
           alignSelf={{ base: "stretch", md: "flex-end" }}
-          _hover={{ bg: "var(--hover-color)" }}
-          _active={{ bg: "var(--primary-color)" }}
           _dark={{
             bg: "gray.700",
             color: "white",

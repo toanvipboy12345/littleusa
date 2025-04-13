@@ -62,12 +62,15 @@ const CategoryManagement = () => {
       setCategories(response.data);
       setCurrentPage(1);
     } catch (error) {
+      // Kiểm tra customMessage từ interceptor
+      const errorMessage = error.customMessage || "Không thể tải danh sách danh mục.";
       toast({
         title: "Lỗi",
-        description: "Không thể tải danh sách danh mục.",
+        description: errorMessage,
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right", // Đặt vị trí thông báo ở góc trên bên phải
       });
     }
   };
@@ -106,9 +109,11 @@ const CategoryManagement = () => {
           setCurrentPage(currentPage - 1);
         }
       } catch (error) {
+        // Kiểm tra customMessage từ interceptor
+        const errorMessage = error.customMessage || "Không thể xóa danh mục.";
         toast({
           title: "Lỗi",
-          description: "Không thể xóa danh mục.",
+          description: errorMessage,
           status: "error",
           duration: 3000,
           isClosable: true,

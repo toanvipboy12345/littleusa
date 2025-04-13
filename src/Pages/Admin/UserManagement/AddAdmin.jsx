@@ -18,21 +18,32 @@ import {
   useBreakpointValue,
 } from "@chakra-ui/react";
 import axiosInstance from "../../../Api/axiosInstance";
-import provincesData from '../../../data/vietnam-provinces.json';
+import provincesData from '../../../data/vietnam-provinces.json'; // File JSON chứa data tỉnh thành
 
-const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
+const adminRolesOptions = [
+  { value: "super_admin", label: "Super Admin" },
+  { value: "product_manager", label: "Product Manager" },
+  { value: "order_manager", label: "Order Manager" },
+  { value: "marketing_manager", label: "Marketing Manager" },
+  { value: "customer_support", label: "Customer Support" },
+  { value: "blog_manager", label: "Blog Manager" },
+];
+
+const AddAdmin = ({ isOpen, onClose, onAddSuccess }) => {
   const [formData, setFormData] = useState({
-    firstName: admin?.firstName || "",
-    lastName: admin?.lastName || "",
-    phone: admin?.phone || "",
-    username: admin?.username || "",
-    email: admin?.email || "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    username: "",
+    email: "",
+    password: "",
+    adminRoles: [],
     address: {
-      street: admin?.address?.street || "",
-      ward: admin?.address?.ward || "",
-      district: admin?.address?.district || "",
-      city: admin?.address?.city || "",
-      country: admin?.address?.country || "Việt Nam",
+      street: "",
+      ward: "",
+      district: "",
+      city: "",
+      country: "Việt Nam",
     },
   });
   const [districts, setDistricts] = useState([]);
@@ -41,41 +52,25 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
-  useEffect(() => {
-    if (admin) {
-      setFormData({
-        firstName: admin.firstName || "",
-        lastName: admin.lastName || "",
-        phone: admin.phone || "",
-        username: admin.username || "",
-        email: admin.email || "",
-        address: {
-          street: admin.address?.street || "",
-          ward: admin.address?.ward || "",
-          district: admin.address?.district || "",
-          city: admin.address?.city || "",
-          country: admin.address?.country || "Việt Nam",
-        },
-      });
-    }
-  }, [admin]);
-
+  // Responsive grid columns
   const gridColumns = useBreakpointValue({
-    base: "repeat(1, 1fr)",
-    md: "repeat(2, 1fr)",
-    lg: "repeat(3, 1fr)",
+    base: "repeat(1, 1fr)", // 1 cột trên mobile
+    md: "repeat(2, 1fr)",   // 2 cột trên tablet
+    lg: "repeat(3, 1fr)",   // 3 cột trên desktop
   });
 
   const gridColumnsTwo = useBreakpointValue({
-    base: "repeat(1, 1fr)",
-    md: "repeat(2, 1fr)",
+    base: "repeat(1, 1fr)", // 1 cột trên mobile
+    md: "repeat(2, 1fr)",   // 2 cột trên tablet và desktop
   });
 
+  // Responsive modal width
   const modalWidth = useBreakpointValue({
-    base: "90vw",
-    md: "800px",
+    base: "90vw", // Chiếm 90% chiều rộng màn hình trên mobile
+    md: "800px",  // Chiều rộng cố định trên tablet và desktop
   });
 
+  // Load districts khi chọn city (Tỉnh/Thành phố)
   const handleCityChange = (e) => {
     const cityName = e.target.value;
     const selectedProvince = provincesData.find((p) => p.name === cityName);
@@ -87,6 +82,7 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
     }));
   };
 
+  // Load wards khi chọn district (Quận/Huyện)
   const handleDistrictChange = (e) => {
     const districtName = e.target.value;
     const selectedDistrict = districts.find((d) => d.name === districtName);
@@ -105,79 +101,36 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
         ...prev,
         address: { ...prev.address, [addressField]: value },
       }));
+    } else if (name === "adminRoles") {
+      setFormData((prev) => ({ ...prev, adminRoles: [value] }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const validateForm = (changedData) => {
+  // Validate form
+  const validateForm = () => {
     const newErrors = {};
-    if (changedData.firstName !== undefined) {
-      if (!formData.firstName) newErrors.firstName = "Vui lòng nhập tên";
-    }
-    if (changedData.lastName !== undefined) {
-      if (!formData.lastName) newErrors.lastName = "Vui lòng nhập họ";
-    }
-    if (changedData.phone !== undefined) {
-      if (!formData.phone) newErrors.phone = "Vui lòng nhập số điện thoại";
-      else if (!/^[0-9]{10}$/.test(formData.phone)) newErrors.phone = "Số điện thoại phải có 10 chữ số";
-    }
-    if (changedData.username !== undefined) {
-      if (!formData.username) newErrors.username = "Vui lòng nhập tên đăng nhập";
-    }
-    if (changedData.email !== undefined) {
-      if (!formData.email) newErrors.email = "Vui lòng nhập email";
-      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email không hợp lệ";
-    }
-    if (changedData.address?.street !== undefined) {
-      if (!formData.address.street) newErrors.street = "Vui lòng nhập số nhà và đường";
-    }
-    if (changedData.address?.ward !== undefined) {
-      if (!formData.address.ward) newErrors.ward = "Vui lòng chọn phường/xã";
-    }
-    if (changedData.address?.district !== undefined) {
-      if (!formData.address.district) newErrors.district = "Vui lòng chọn quận/huyện";
-    }
-    if (changedData.address?.city !== undefined) {
-      if (!formData.address.city) newErrors.city = "Vui lòng chọn tỉnh/thành phố";
-    }
+    if (!formData.firstName) newErrors.firstName = "Vui lòng nhập tên";
+    if (!formData.lastName) newErrors.lastName = "Vui lòng nhập họ";
+    if (!formData.phone) newErrors.phone = "Vui lòng nhập số điện thoại";
+    else if (!/^[0-9]{10}$/.test(formData.phone)) newErrors.phone = "Số điện thoại phải có 10 chữ số";
+    if (!formData.username) newErrors.username = "Vui lòng nhập tên đăng nhập";
+    if (!formData.email) newErrors.email = "Vui lòng nhập email";
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email không hợp lệ";
+    if (!formData.password) newErrors.password = "Vui lòng nhập mật khẩu";
+    else if (formData.password.length < 6) newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
+    if (!formData.adminRoles.length) newErrors.adminRoles = "Vui lòng chọn vai trò";
+    if (!formData.address.street) newErrors.street = "Vui lòng nhập số nhà và đường";
+    if (!formData.address.ward) newErrors.ward = "Vui lòng chọn phường/xã";
+    if (!formData.address.district) newErrors.district = "Vui lòng chọn quận/huyện";
+    if (!formData.address.city) newErrors.city = "Vui lòng chọn tỉnh/thành phố";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
-    const changedData = {};
-    if (formData.firstName !== admin?.firstName) changedData.firstName = formData.firstName;
-    if (formData.lastName !== admin?.lastName) changedData.lastName = formData.lastName;
-    if (formData.phone !== admin?.phone) changedData.phone = formData.phone;
-    if (formData.username !== admin?.username) changedData.username = formData.username;
-    if (formData.email !== admin?.email) changedData.email = formData.email;
-    if (
-      formData.address.street !== admin?.address?.street ||
-      formData.address.ward !== admin?.address?.ward ||
-      formData.address.district !== admin?.address?.district ||
-      formData.address.city !== admin?.address?.city ||
-      formData.address.country !== admin?.address?.country
-    ) {
-      changedData.address = { ...formData.address };
-    }
-
-    if (Object.keys(changedData).length === 0) {
-      toast({
-        title: "Thông báo",
-        description: "Không có thay đổi để cập nhật.",
-        status: "info",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
-      onClose();
-      return;
-    }
-
-    console.log("Các trường được gửi đi:", changedData);
-
-    if (!validateForm(changedData)) {
+    if (!validateForm()) {
       toast({
         title: "Lỗi",
         description: "Vui lòng kiểm tra lại các trường thông tin",
@@ -191,17 +144,27 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
 
     setLoading(true);
     try {
-      const response = await axiosInstance.put(`/api/admin/${admin.id}`, changedData);
-      console.log("Dữ liệu trả về từ API PUT:", response.data); // Log để kiểm tra
-      onEditSuccess(response.data);
+      const newAdmin = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        adminRoles: formData.adminRoles,
+        address: { ...formData.address },
+      };
+      const response = await axiosInstance.post("/api/admin", newAdmin);
+      onAddSuccess(response.data);
       toast({
         title: "Thành công",
-        description: "Đã cập nhật thông tin admin.",
+        description: "Đã thêm admin mới.",
         status: "success",
         duration: 3000,
         isClosable: true,
         position: "top-right",
       });
+      resetForm();
       onClose();
     } catch (error) {
       const errorMessage =
@@ -210,7 +173,7 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
           : error.response?.data?.error ||
             error.response?.data?.message ||
             error.message ||
-            "Không thể cập nhật admin.";
+            "Không thể thêm admin.";
       toast({
         title: "Lỗi",
         description: errorMessage,
@@ -224,20 +187,38 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
     }
   };
 
-  useEffect(() => {
-    if (isOpen && formData.address.city) {
-      const selectedProvince = provincesData.find((p) => p.name === formData.address.city);
-      setDistricts(selectedProvince?.districts || []);
-      if (formData.address.district) {
-        const selectedDistrict = selectedProvince?.districts.find((d) => d.name === formData.address.district);
-        setWards(selectedDistrict?.wards || []);
-      }
-    }
-  }, [isOpen, formData.address.city, formData.address.district]);
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      username: "",
+      email: "",
+      password: "",
+      adminRoles: [],
+      address: {
+        street: "",
+        ward: "",
+        district: "",
+        city: "",
+        country: "Việt Nam",
+      },
+    });
+    setDistricts([]);
+    setWards([]);
+    setErrors({});
+  };
 
+  // Reset khi modal đóng/mở
   useEffect(() => {
     if (!isOpen) {
-      setErrors({});
+      resetForm();
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        address: { ...prev.address, country: "Việt Nam" },
+      }));
     }
   }, [isOpen]);
 
@@ -245,7 +226,7 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent maxW={modalWidth}>
-        <ModalHeader fontSize="xl" fontWeight="bold">Chỉnh sửa admin</ModalHeader>
+        <ModalHeader fontSize="xl" fontWeight="bold">Thêm admin mới</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <Grid templateColumns={gridColumnsTwo} gap={6}>
@@ -312,6 +293,42 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
                   size="md"
                 />
                 {errors.email && <FormLabel color="red.500" fontSize="xs">{errors.email}</FormLabel>}
+              </FormControl>
+            </GridItem>
+            <GridItem>
+              <FormControl isInvalid={!!errors.password}>
+                <FormLabel fontSize="sm" fontWeight="medium">Mật khẩu</FormLabel>
+                <Input
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Nhập mật khẩu..."
+                  size="md"
+                />
+                {errors.password && <FormLabel color="red.500" fontSize="xs">{errors.password}</FormLabel>}
+              </FormControl>
+            </GridItem>
+          </Grid>
+
+          <Grid templateColumns="repeat(1, 1fr)" gap={6} mt={4}>
+            <GridItem>
+              <FormControl isInvalid={!!errors.adminRoles}>
+                <FormLabel fontSize="sm" fontWeight="medium">Vai trò</FormLabel>
+                <Select
+                  name="adminRoles"
+                  value={formData.adminRoles[0] || ""}
+                  onChange={handleChange}
+                  placeholder="Chọn vai trò"
+                  size="md"
+                >
+                  {adminRolesOptions.map((role) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </Select>
+                {errors.adminRoles && <FormLabel color="red.500" fontSize="xs">{errors.adminRoles}</FormLabel>}
               </FormControl>
             </GridItem>
           </Grid>
@@ -415,7 +432,7 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
             isLoading={loading}
             size="md"
           >
-            Lưu
+            Thêm
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -423,4 +440,4 @@ const EditAdmin = ({ isOpen, onClose, admin, onEditSuccess }) => {
   );
 };
 
-export default EditAdmin;
+export default AddAdmin;

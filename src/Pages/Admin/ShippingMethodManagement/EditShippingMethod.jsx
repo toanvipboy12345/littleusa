@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // Thêm useEffect
+import React, { useState, useEffect } from "react";
 import {
   FormControl,
   FormLabel,
@@ -48,8 +48,63 @@ const EditShippingMethod = ({ isOpen, onClose, shippingMethod, onEditSuccess }) 
     }));
   };
 
+  const validateForm = () => {
+    const requiredFields = [
+      { name: "code", label: "Mã đơn vị vận chuyển" },
+      { name: "name", label: "Tên đơn vị vận chuyển" },
+      { name: "shippingFee", label: "Phí vận chuyển" },
+      { name: "status", label: "Trạng thái" },
+    ];
+
+    // Kiểm tra các trường bắt buộc không được để trống
+    for (const field of requiredFields) {
+      if (!editedShippingMethod[field.name] || editedShippingMethod[field.name].toString().trim() === "") {
+        toast({
+          title: "Lỗi",
+          description: `Vui lòng nhập ${field.label}.`,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+        return false;
+      }
+    }
+
+    // Kiểm tra phí vận chuyển phải là số dương
+    const shippingFee = parseFloat(editedShippingMethod.shippingFee);
+    if (isNaN(shippingFee) || shippingFee <= 0) {
+      toast({
+        title: "Lỗi",
+        description: "Phí vận chuyển phải là số dương.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
-    if (!editedShippingMethod.id) return;
+    if (!editedShippingMethod.id) {
+      toast({
+        title: "Lỗi",
+        description: "Không tìm thấy ID đơn vị vận chuyển để cập nhật.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+      return;
+    }
+
+    // Kiểm tra validation trước khi gửi request
+    if (!validateForm()) {
+      return;
+    }
 
     const shippingMethodData = {
       ...editedShippingMethod,
@@ -71,7 +126,8 @@ const EditShippingMethod = ({ isOpen, onClose, shippingMethod, onEditSuccess }) 
         onClose();
       }
     } catch (error) {
-      const errorMessage = error.response?.data || "Không thể cập nhật đơn vị vận chuyển.";
+      // Kiểm tra nếu lỗi là 403 và hiển thị custom message
+      const errorMessage = error.customMessage || (error.response?.data || "Không thể cập nhật đơn vị vận chuyển.");
       toast({
         title: "Lỗi",
         description:
@@ -79,6 +135,7 @@ const EditShippingMethod = ({ isOpen, onClose, shippingMethod, onEditSuccess }) 
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right",
       });
     }
   };
@@ -97,7 +154,6 @@ const EditShippingMethod = ({ isOpen, onClose, shippingMethod, onEditSuccess }) 
                 name="code"
                 value={editedShippingMethod.code}
                 onChange={handleInputChange}
-                
               />
             </FormControl>
 

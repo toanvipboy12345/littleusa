@@ -51,7 +51,8 @@ const AddCategory = ({ onAddSuccess }) => {
         onAddSuccess(response.data);
       }
     } catch (error) {
-      const errorMessage = error.response?.data || "Không thể thêm danh mục.";
+      // Kiểm tra customMessage từ interceptor
+      const errorMessage = error.customMessage || error.response?.data || "Không thể thêm danh mục.";
       toast({
         title: "Lỗi",
         description:
@@ -61,6 +62,7 @@ const AddCategory = ({ onAddSuccess }) => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right", // Đặt vị trí thông báo ở góc trên bên phải
       });
     }
   };
@@ -74,7 +76,6 @@ const AddCategory = ({ onAddSuccess }) => {
       p={{ base: 4, md: 6 }}
       bg="transparent"
       _dark={{ bg: "gray.900" }}
-    
     >
       <VStack spacing={{ base: 4, md: 6 }} align="stretch">
         {/* FormControl cho Tên danh mục */}

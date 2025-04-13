@@ -53,16 +53,18 @@ import EditProduct from "./EditProduct";
 import EditVariant from "./EditVariant";
 import { useDisclosure } from "@chakra-ui/react";
 
+const LOW_STOCK_THRESHOLD = 5; // Ngưỡng số lượng thấp
+
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(""); // Thêm state cho danh mục
-  const [selectedBrand, setSelectedBrand] = useState(""); // Thêm state cho thương hiệu
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // Thay đổi từ const thành state
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const toast = useToast();
 
   const {
@@ -86,7 +88,33 @@ const ProductManagement = () => {
   } = useDisclosure();
   const [variantToEdit, setVariantToEdit] = useState(null);
 
-  // Nạp danh sách thương hiệu và danh mục khi component mount
+  // Hàm định dạng ngày giống BlogListView
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
+
+  // Hàm kiểm tra số lượng thấp
+  const checkLowStock = (variants) => {
+    if (!variants || !Array.isArray(variants)) return [];
+    return variants.map((variant) => ({
+      ...variant,
+      lowStockSizes: variant.sizes?.filter(
+        (size) => size.quantity <= LOW_STOCK_THRESHOLD
+      ) || [],
+    }));
+  };
+
+  // Kiểm tra xem sản phẩm có biến thể nào sắp hết hàng không
+  const hasLowStock = (variants) => {
+    if (!variants || !Array.isArray(variants)) return false;
+    return variants.some((variant) => variant.lowStockSizes?.length > 0);
+  };
+
+  // Nạp danh sách thương hiệu và danh mục
   useEffect(() => {
     const fetchBrandsAndCategories = async () => {
       try {
@@ -111,7 +139,7 @@ const ProductManagement = () => {
     fetchBrandsAndCategories();
   }, [toast]);
 
-  // Cập nhật fetchProducts để hỗ trợ bộ lọc
+  // Nạp danh sách sản phẩm
   const fetchProducts = useCallback(
     async (search = "", categoryId = "", brandId = "") => {
       try {
@@ -125,16 +153,28 @@ const ProductManagement = () => {
         );
         const normalizedProducts = response.data.map((product) => ({
           ...product,
-          variants:
+          variants: checkLowStock(
             product.variants?.map((variant) => ({
               ...variant,
               productId:
                 variant.productId && !isNaN(Number(variant.productId))
                   ? Number(variant.productId)
                   : null,
-            })) || [],
+            })) || []
+          ),
         }));
-        setProducts(normalizedProducts);
+
+        // Sắp xếp sản phẩm: ưu tiên sản phẩm có biến thể sắp hết hàng lên đầu
+        const sortedProducts = normalizedProducts.sort((a, b) => {
+          const aHasLowStock = hasLowStock(a.variants);
+          const bHasLowStock = hasLowStock(b.variants);
+
+          if (aHasLowStock && !bHasLowStock) return -1; // a lên đầu nếu a có biến thể sắp hết hàng
+          if (!aHasLowStock && bHasLowStock) return 1; // b lên đầu nếu b có biến thể sắp hết hàng
+          return 0; // Giữ nguyên thứ tự nếu cả hai đều có hoặc không có biến thể sắp hết hàng
+        });
+
+        setProducts(sortedProducts);
         setCurrentPage(1);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -160,23 +200,20 @@ const ProductManagement = () => {
     setSearchTerm(value);
   };
 
-  // Thêm hàm xử lý thay đổi danh mục
   const handleCategoryChange = (e) => {
     const value = e.target.value;
     setSelectedCategory(value);
   };
 
-  // Thêm hàm xử lý thay đổi thương hiệu
   const handleBrandChange = (e) => {
     const value = e.target.value;
     setSelectedBrand(value);
   };
 
-  // Thêm hàm xử lý thay đổi số lượng sản phẩm hiển thị trên mỗi trang
   const handleItemsPerPageChange = (e) => {
     const newItemsPerPage = parseInt(e.target.value);
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset về trang đầu tiên khi thay đổi số lượng hiển thị
+    setCurrentPage(1);
   };
 
   const handleDeleteOpen = (id) => {
@@ -294,17 +331,32 @@ const ProductManagement = () => {
     onEditVariantOpen();
   };
 
-  const handleAddSuccess = (newProductData) => {
-    setProducts([...products, newProductData]);
+  const handleAddSuccess = () => {
+    fetchProducts(searchTerm, selectedCategory, selectedBrand);
     setActiveTab(0);
   };
 
   const handleEditProductSuccess = (updatedProduct) => {
-    setProducts(
-      products.map((product) =>
-        product.id === updatedProduct.id ? updatedProduct : product
-      )
+    // Áp dụng checkLowStock cho sản phẩm vừa cập nhật
+    const normalizedProduct = {
+      ...updatedProduct,
+      variants: checkLowStock(updatedProduct.variants || []),
+    };
+    const updatedProducts = products.map((product) =>
+      product.id === normalizedProduct.id ? normalizedProduct : product
     );
+
+    // Sắp xếp lại danh sách sau khi cập nhật
+    const sortedProducts = updatedProducts.sort((a, b) => {
+      const aHasLowStock = hasLowStock(a.variants);
+      const bHasLowStock = hasLowStock(b.variants);
+
+      if (aHasLowStock && !bHasLowStock) return -1;
+      if (!aHasLowStock && bHasLowStock) return 1;
+      return 0;
+    });
+
+    setProducts(sortedProducts);
     onEditProductClose();
   };
 
@@ -323,17 +375,27 @@ const ProductManagement = () => {
           if (!updatedVariant.id) {
             updatedVariants.push(updatedVariant);
           }
-          return { ...product, variants: updatedVariants };
+          return {
+            ...product,
+            variants: checkLowStock(updatedVariants),
+          };
         }
       }
       return product;
     });
-    setProducts(updatedProducts);
 
-    // Tải lại danh sách sản phẩm từ server để đảm bảo đồng bộ
+    // Sắp xếp lại danh sách sau khi cập nhật biến thể
+    const sortedProducts = updatedProducts.sort((a, b) => {
+      const aHasLowStock = hasLowStock(a.variants);
+      const bHasLowStock = hasLowStock(b.variants);
+
+      if (aHasLowStock && !bHasLowStock) return -1;
+      if (!aHasLowStock && bHasLowStock) return 1;
+      return 0;
+    });
+
+    setProducts(sortedProducts);
     fetchProducts(searchTerm, selectedCategory, selectedBrand);
-
-    // Cập nhật variantToEdit với dữ liệu đầy đủ từ server
     setVariantToEdit({
       ...updatedVariant,
       productId: updatedVariant.productId,
@@ -506,44 +568,67 @@ const ProductManagement = () => {
               >
                 <Thead>
                   <Tr>
-                    <Th>ID</Th>
-                    <Th>Mã</Th>
+                    <Th>Mã sản phẩm</Th>
                     <Th>Tên</Th>
                     <Th>Giá bán</Th>
                     <Th>Thương hiệu</Th>
                     <Th>Danh mục</Th>
-                    <Th>Màu sắc</Th>
+                    <Th>Ngày tạo</Th>
+                    <Th>Màu sắc & Tồn kho</Th>
                     <Th>Thao tác</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
                   {paginatedProducts.map((product) => (
                     <Tr key={product.id}>
-                      <Td>{product.id}</Td>
                       <Td>{product.code}</Td>
                       <Td>{product.name}</Td>
                       <Td>{formatCurrency(product.price)}</Td>
                       <Td>{getBrandName(product.brandId)}</Td>
                       <Td>{getCategoryName(product.categoryId)}</Td>
+                      <Td>{formatDate(product.createdAt)}</Td>
                       <Td>
                         {product.variants && product.variants.length > 0 ? (
-                          <Wrap spacing={2}>
-                            {product.variants.map(
-                              (variant, index) =>
-                                variant.mainImage && (
-                                  <WrapItem key={index}>
-                                    <Image
-                                      src={`http://localhost:8080${variant.mainImage}`}
-                                      alt={`${product.name} - ${variant.color}`}
-                                      boxSize="50px"
-                                      objectFit="cover"
-                                    />
-                                  </WrapItem>
-                                )
+                          <Box>
+                            {/* Hiển thị ảnh các biến thể nằm ngang */}
+                            <Wrap spacing={2} mb={2}>
+                              {product.variants.map(
+                                (variant, index) =>
+                                  variant.mainImage && (
+                                    <WrapItem key={index}>
+                                      <Image
+                                        src={`http://localhost:8080${variant.mainImage}`}
+                                        alt={`${product.name} - ${variant.color}`}
+                                        boxSize="50px"
+                                        objectFit="cover"
+                                      />
+                                    </WrapItem>
+                                  )
+                              )}
+                            </Wrap>
+                            {/* Chỉ hiển thị thông tin màu sắc và tồn kho của các biến thể sắp hết hàng */}
+                            {hasLowStock(product.variants) && (
+                              <>
+                                {product.variants
+                                  .filter((variant) => variant.lowStockSizes?.length > 0)
+                                  .map((variant, index) => (
+                                    <Box key={index}>
+                                      <Text fontSize="sm">
+                                        Màu: {variant.color}
+                                      </Text>
+                                      <Text fontSize="sm" color="red.500">
+                                        Sắp hết:{" "}
+                                        {variant.lowStockSizes
+                                          .map((size) => `${size.size} (${size.quantity})`)
+                                          .join(", ")}
+                                      </Text>
+                                    </Box>
+                                  ))}
+                              </>
                             )}
-                          </Wrap>
+                          </Box>
                         ) : (
-                          "Không có hình ảnh"
+                          "Không có biến thể"
                         )}
                       </Td>
                       <Td>
@@ -580,7 +665,7 @@ const ProductManagement = () => {
                                       variant="ghost"
                                       size="sm"
                                     >
-                                      Sửa biến thể {variant.color}
+                                      Biến thể {variant.color}
                                     </Button>
                                   ))}
                                   <Button
@@ -626,8 +711,7 @@ const ProductManagement = () => {
                   >
                     <Flex justify="space-between" align="center">
                       <VStack align="start" spacing={1}>
-                        <Text fontWeight="bold">ID: {product.id}</Text>
-                        <Text>Mã: {product.code}</Text>
+                        <Text fontWeight="bold">Mã: {product.code}</Text>
                         <Text>Tên: {product.name}</Text>
                         <Text fontSize="sm">
                           Giá bán: {formatCurrency(product.price)}
@@ -638,25 +722,51 @@ const ProductManagement = () => {
                         <Text fontSize="sm">
                           Danh mục: {getCategoryName(product.categoryId)}
                         </Text>
+                        <Text fontSize="sm">
+                          Ngày tạo: {formatDate(product.createdAt)}
+                        </Text>
                         {product.variants && product.variants.length > 0 ? (
-                          <Wrap spacing={2} mt={2}>
-                            {product.variants.map(
-                              (variant, index) =>
-                                variant.mainImage && (
-                                  <WrapItem key={index}>
-                                    <Image
-                                      src={`http://localhost:8080${variant.mainImage}`}
-                                      alt={`${product.name} - ${variant.color}`}
-                                      boxSize="50px"
-                                      objectFit="cover"
-                                      borderRadius="md"
-                                    />
-                                  </WrapItem>
-                                )
+                          <Box mt={2}>
+                            {/* Hiển thị ảnh các biến thể nằm ngang */}
+                            <Wrap spacing={2} mb={2}>
+                              {product.variants.map(
+                                (variant, index) =>
+                                  variant.mainImage && (
+                                    <WrapItem key={index}>
+                                      <Image
+                                        src={`http://localhost:8080${variant.mainImage}`}
+                                        alt={`${product.name} - ${variant.color}`}
+                                        boxSize="50px"
+                                        objectFit="cover"
+                                        borderRadius="md"
+                                      />
+                                    </WrapItem>
+                                  )
+                              )}
+                            </Wrap>
+                            {/* Chỉ hiển thị thông tin màu sắc và tồn kho của các biến thể sắp hết hàng */}
+                            {hasLowStock(product.variants) && (
+                              <>
+                                {product.variants
+                                  .filter((variant) => variant.lowStockSizes?.length > 0)
+                                  .map((variant, index) => (
+                                    <Box key={index}>
+                                      <Text fontSize="sm">
+                                        Màu: {variant.color}
+                                      </Text>
+                                      <Text fontSize="sm" color="red.500">
+                                        Sắp hết:{" "}
+                                        {variant.lowStockSizes
+                                          .map((size) => `${size.size} (${size.quantity})`)
+                                          .join(", ")}
+                                      </Text>
+                                    </Box>
+                                  ))}
+                              </>
                             )}
-                          </Wrap>
+                          </Box>
                         ) : (
-                          <Text fontSize="sm">Không có hình ảnh</Text>
+                          <Text fontSize="sm">Không có biến thể</Text>
                         )}
                       </VStack>
                       <VStack spacing={2}>

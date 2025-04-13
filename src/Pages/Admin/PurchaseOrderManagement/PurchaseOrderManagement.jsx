@@ -31,39 +31,53 @@ import {
   FormLabel,
   SimpleGrid,
   Select,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
 } from "@chakra-ui/react";
-import { Search, ChevronLeft, ChevronRight, Download } from "react-feather"; // Thêm Download icon
+import { Search, ChevronLeft, ChevronRight, Download } from "react-feather";
 
-const PurchaseOrderManagement = () => {
+const PurchaseOrderManagement = ({setActiveMenu}) => {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [isLoading, setIsLoading] = useState(false); // Thêm trạng thái loading
+  const [orderIdToCancel, setOrderIdToCancel] = useState(null); // Lưu ID phiếu để hủy
+  const { isOpen: isModalOpen, onOpen: onModalOpen, onClose: onModalClose } = useDisclosure();
+  const { isOpen: isCancelDialogOpen, onOpen: onCancelDialogOpen, onClose: onCancelDialogClose } = useDisclosure();
   const toast = useToast();
 
+  // Đưa fetchPurchaseOrders ra ngoài useEffect
+  const fetchPurchaseOrders = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm) params.append("search", searchTerm);
+      const response = await axiosInstance.get(
+        `/api/purchase-orders${params.toString() ? `?${params.toString()}` : ""}`
+      );
+      setPurchaseOrders(response.data);
+    } catch (error) {
+      console.error("Error fetching purchase orders:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách phiếu nhập hàng.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPurchaseOrders = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (searchTerm) params.append("search", searchTerm);
-        const response = await axiosInstance.get(
-          `/api/purchase-orders${params.toString() ? `?${params.toString()}` : ""}`
-        );
-        setPurchaseOrders(response.data);
-      } catch (error) {
-        console.error("Error fetching purchase orders:", error);
-        toast({
-          title: "Lỗi",
-          description: "Không thể tải danh sách phiếu nhập hàng.",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right",
-        });
-      }
-    };
     fetchPurchaseOrders();
   }, [toast, searchTerm]);
 
@@ -81,12 +95,8 @@ const PurchaseOrderManagement = () => {
 
   const handleConfirmPurchaseOrder = async (id) => {
     try {
-      const response = await axiosInstance.patch(`/api/purchase-orders/${id}/confirm`);
-      setPurchaseOrders(
-        purchaseOrders.map((order) =>
-          order.id === id ? response.data : order
-        )
-      );
+      await axiosInstance.patch(`/api/purchase-orders/${id}/confirm`);
+      await fetchPurchaseOrders(); // Gọi lại để đồng bộ dữ liệu
       toast({
         title: "Thành công",
         description: "Phiếu nhập hàng đã được xác nhận.",
@@ -108,14 +118,11 @@ const PurchaseOrderManagement = () => {
     }
   };
 
-  const handleCancelPurchaseOrder = async (id) => {
+  const handleCancelPurchaseOrder = async () => {
+    if (!orderIdToCancel) return;
     try {
-      const response = await axiosInstance.patch(`/api/purchase-orders/${id}/cancel`);
-      setPurchaseOrders(
-        purchaseOrders.map((order) =>
-          order.id === id ? response.data : order
-        )
-      );
+      await axiosInstance.patch(`/api/purchase-orders/${orderIdToCancel}/cancel`);
+      await fetchPurchaseOrders(); // Gọi lại để đồng bộ dữ liệu
       toast({
         title: "Thành công",
         description: "Phiếu nhập hàng đã bị hủy.",
@@ -134,27 +141,27 @@ const PurchaseOrderManagement = () => {
         isClosable: true,
         position: "top-right",
       });
+    } finally {
+      setOrderIdToCancel(null);
+      onCancelDialogClose();
     }
   };
 
+  const handleOpenCancelDialog = (id) => {
+    setOrderIdToCancel(id);
+    onCancelDialogOpen();
+  };
+
   const handleCreatePurchaseOrder = () => {
-    toast({
-      title: "Thông báo",
-      description: "Chức năng tạo phiếu nhập hàng đang được phát triển.",
-      status: "info",
-      duration: 3000,
-      isClosable: true,
-      position: "top-right",
-    });
+    setActiveMenu("addPurchaseOrder"); // Chuyển sang giao diện AddPurchaseOrder
   };
 
   const handleExportPdf = async (id) => {
     try {
       const response = await axiosInstance.get(`/api/purchase-orders/${id}/export-pdf`, {
-        responseType: "blob", // Nhận dữ liệu dưới dạng blob (file binary)
+        responseType: "blob",
       });
 
-      // Tạo URL từ blob và kích hoạt tải file
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -162,25 +169,8 @@ const PurchaseOrderManagement = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-
-      toast({
-        title: "Thành công",
-        description: "Phiếu nhập hàng đã được xuất thành file PDF.",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
     } catch (error) {
       console.error("Error exporting PDF:", error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể xuất phiếu nhập hàng thành PDF.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
     }
   };
 
@@ -205,7 +195,7 @@ const PurchaseOrderManagement = () => {
 
   const handleViewDetails = (order) => {
     setSelectedOrder(order);
-    onOpen();
+    onModalOpen();
   };
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -341,73 +331,79 @@ const PurchaseOrderManagement = () => {
         </Flex>
       </Stack>
 
-      <Box overflowX={{ base: "auto", md: "visible" }}>
-        <Table variant="simple" size={{ base: "sm", md: "md" }}>
-          <Thead>
-            <Tr>
-              <Th>ID</Th>
-              <Th>Mã phiếu</Th>
-              <Th>Nhà cung cấp</Th>
-              <Th>Sản phẩm</Th>
-              <Th>Ngày tạo</Th>
-              <Th>Ngày cập nhật</Th>
-              <Th>Trạng thái</Th>
-              <Th>Tổng giá trị</Th>
-              <Th>Chi tiết</Th>
-              <Th>Thao tác</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {paginatedPurchaseOrders.map((order) => (
-              <Tr key={order.id}>
-                <Td>{order.id}</Td>
-                <Td>{order.purchaseOrderCode}</Td>
-                <Td>{order.supplierName}</Td>
-                <Td>{order.productName}</Td>
-                <Td>{formatDate(order.createdAt)}</Td>
-                <Td>{formatDate(order.updatedAt)}</Td>
-                <Td>{getStatusInVietnamese(order.status)}</Td>
-                <Td>{formatCurrency(order.totalAmount)}</Td>
-                <Td>
-                  <Button
-                    size={{ base: "xs", md: "sm" }}
-                    onClick={() => handleViewDetails(order)}
-                  >
-                    Xem chi tiết
-                  </Button>
-                </Td>
-                <Td>
-                  <HStack spacing={2}>
-                    {order.status === "PENDING" && (
-                      <>
-                        <Button
-                          size={{ base: "xs", md: "sm" }}
-                          onClick={() => handleConfirmPurchaseOrder(order.id)}
-                        >
-                          Xác nhận
-                        </Button>
-                        <Button
-                          size={{ base: "xs", md: "sm" }}
-                          onClick={() => handleCancelPurchaseOrder(order.id)}
-                        >
-                          Hủy
-                        </Button>
-                      </>
-                    )}
+      {isLoading ? (
+        <Text textAlign="center" fontSize="lg">
+          Đang tải dữ liệu...
+        </Text>
+      ) : (
+        <Box overflowX={{ base: "auto", md: "visible" }}>
+          <Table variant="simple" size={{ base: "sm", md: "md" }}>
+            <Thead>
+              <Tr>
+                <Th>ID</Th>
+                <Th>Mã phiếu</Th>
+                <Th>Nhà cung cấp</Th>
+                <Th>Sản phẩm</Th>
+                <Th>Ngày tạo</Th>
+                <Th>Ngày cập nhật</Th>
+                <Th>Trạng thái</Th>
+                <Th>Tổng giá trị</Th>
+                <Th>Chi tiết</Th>
+                <Th>Thao tác</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {paginatedPurchaseOrders.map((order) => (
+                <Tr key={order.id}>
+                  <Td>{order.id}</Td>
+                  <Td>{order.purchaseOrderCode}</Td>
+                  <Td>{order.supplierName}</Td>
+                  <Td>{order.productName}</Td>
+                  <Td>{formatDate(order.createdAt)}</Td>
+                  <Td>{formatDate(order.updatedAt)}</Td>
+                  <Td>{getStatusInVietnamese(order.status)}</Td>
+                  <Td>{formatCurrency(order.totalAmount)}</Td>
+                  <Td>
                     <Button
                       size={{ base: "xs", md: "sm" }}
-                      onClick={() => handleExportPdf(order.id)}
-                      leftIcon={<Download size={16} />}
+                      onClick={() => handleViewDetails(order)}
                     >
-                      Xuất PDF
+                      Xem chi tiết
                     </Button>
-                  </HStack>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </Box>
+                  </Td>
+                  <Td>
+                    <HStack spacing={2}>
+                      {order.status === "PENDING" && (
+                        <>
+                          <Button
+                            size={{ base: "xs", md: "sm" }}
+                            onClick={() => handleConfirmPurchaseOrder(order.id)}
+                          >
+                            Xác nhận
+                          </Button>
+                          <Button
+                            size={{ base: "xs", md: "sm" }}
+                            onClick={() => handleOpenCancelDialog(order.id)}
+                          >
+                            Hủy
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        size={{ base: "xs", md: "sm" }}
+                        onClick={() => handleExportPdf(order.id)}
+                        leftIcon={<Download size={16} />}
+                      >
+                        Xuất PDF
+                      </Button>
+                    </HStack>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
+      )}
 
       {purchaseOrders.length > 0 && (
         <Flex
@@ -444,7 +440,7 @@ const PurchaseOrderManagement = () => {
         </Flex>
       )}
 
-      <Modal isOpen={isOpen} onClose={onClose} size="3xl">
+      <Modal isOpen={isModalOpen} onClose={onModalClose} size="3xl">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Chi tiết phiếu nhập hàng</ModalHeader>
@@ -537,12 +533,37 @@ const PurchaseOrderManagement = () => {
             )}
           </ModalBody>
           <ModalFooter>
-            <Button variant="solid" onClick={onClose}>
+            <Button variant="solid" onClick={onModalClose}>
               Đóng
             </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      <AlertDialog
+        isOpen={isCancelDialogOpen}
+        onClose={onCancelDialogClose}
+        leastDestructiveRef={undefined}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Xác nhận hủy phiếu nhập hàng
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              Bạn có chắc muốn hủy phiếu nhập hàng này không? Hành động này không thể hoàn tác.
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button onClick={onCancelDialogClose} variant="ghost">
+                Không
+              </Button>
+              <Button onClick={handleCancelPurchaseOrder} ml={3} colorScheme="red">
+                Hủy phiếu
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 };

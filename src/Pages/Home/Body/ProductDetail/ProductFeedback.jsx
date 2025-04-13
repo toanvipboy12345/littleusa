@@ -45,6 +45,45 @@ const ProductFeedback = ({ productId }) => {
     fetchFeedbacks();
   }, [productId, toast]);
 
+  // Hàm tính toán lại averageRating, totalFeedbacks, và ratingDistribution
+  const calculateFeedbackStats = (feedbackList) => {
+    if (feedbackList.length === 0) {
+      return {
+        averageRating: 0,
+        totalFeedbacks: 0,
+        ratingDistribution: { "5": 0, "4": 0, "3": 0, "2": 0, "1": 0 },
+      };
+    }
+
+    // Tính tổng số đánh giá
+    const totalFeedbacks = feedbackList.length;
+
+    // Tính trung bình rating
+    const totalRating = feedbackList.reduce((sum, fb) => sum + fb.rating, 0);
+    const averageRating = totalRating / totalFeedbacks;
+
+    // Tính phân phối đánh giá
+    const ratingCounts = { "5": 0, "4": 0, "3": 0, "2": 0, "1": 0 };
+    feedbackList.forEach((fb) => {
+      const ratingStr = fb.rating.toString();
+      if (ratingCounts[ratingStr] !== undefined) {
+        ratingCounts[ratingStr]++;
+      }
+    });
+
+    const ratingDistribution = {};
+    for (let star = 1; star <= 5; star++) {
+      const starStr = star.toString();
+      ratingDistribution[starStr] = totalFeedbacks > 0 ? (ratingCounts[starStr] / totalFeedbacks) * 100 : 0;
+    }
+
+    return {
+      averageRating,
+      totalFeedbacks,
+      ratingDistribution,
+    };
+  };
+
   const handleFeedbackSubmit = async () => {
     if (!user) {
       toast({
@@ -83,14 +122,32 @@ const ProductFeedback = ({ productId }) => {
         isClosable: true,
       });
 
+      // Tạo feedback mới với thông tin đầy đủ
       const newFeedbackWithName = {
         ...response.data,
         fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-        averageRating: feedbacks.length > 0 
-          ? (feedbacks.reduce((sum, fb) => sum + fb.rating, 0) + newFeedback.rating) / (feedbacks.length + 1) 
-          : newFeedback.rating,
+        userId: user.id,
+        createdAt: new Date().toISOString(), // Thêm thời gian tạo
       };
-      setFeedbacks((prevFeedbacks) => [...prevFeedbacks, newFeedbackWithName]);
+
+      // Thêm feedback mới vào danh sách
+      const updatedFeedbacks = [...feedbacks, newFeedbackWithName];
+
+      // Tính toán lại các giá trị thống kê
+      const stats = calculateFeedbackStats(updatedFeedbacks);
+
+      // Cập nhật feedbacks với các giá trị mới
+      setFeedbacks([
+        {
+          ...updatedFeedbacks[0], // Giữ lại feedback đầu tiên (nếu có)
+          averageRating: stats.averageRating,
+          totalFeedbacks: stats.totalFeedbacks,
+          ratingDistribution: stats.ratingDistribution,
+        },
+        ...updatedFeedbacks.slice(1), // Các feedback còn lại
+      ]);
+
+      // Reset form
       setNewFeedback({ rating: 0, comment: "", images: [] });
     } catch (error) {
       console.error("Error submitting feedback:", error);
@@ -145,7 +202,6 @@ const ProductFeedback = ({ productId }) => {
                 {feedbacks[0].totalFeedbacks || 0} đánh giá
               </Text>
             </Box>
-
 
             {/* Phân phối đánh giá */}
             <Box w={{ base: "100%", md: "auto" }} flex={{ md: 1 }}>

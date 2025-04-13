@@ -77,18 +77,20 @@ const EditBrand = ({ isOpen, onClose, brand, onEditSuccess }) => {
           status: "success",
           duration: 3000,
           isClosable: true,
-          position: "top-right"
+          position: "top-right",
         });
         onEditSuccess(response.data);
       }
     } catch (error) {
-      const errorMessage = error.response?.data || "Không thể cập nhật thương hiệu.";
+      // Kiểm tra customMessage từ interceptor
+      const errorMessage = error.customMessage || error.response?.data || "Không thể cập nhật thương hiệu.";
       toast({
         title: "Lỗi",
         description: typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage),
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right", // Đặt vị trí thông báo ở góc trên bên phải
       });
     }
   };
@@ -113,7 +115,7 @@ const EditBrand = ({ isOpen, onClose, brand, onEditSuccess }) => {
                   placeholder="Nhập tên thương hiệu"
                   variant="outline"
                   border="1px solid"
-                  color = "Black"
+                  color="Black"
                   borderColor="var(--primary-color)"
                   _dark={{ bg: "gray.800", borderColor: "gray.600", color: "white", _placeholder: { color: "gray.400" } }}
                 />

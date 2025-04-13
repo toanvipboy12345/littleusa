@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../../../Api/axiosInstance";
 import {
@@ -43,7 +42,7 @@ const SupplierManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // Thay đổi từ const thành state
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const toast = useToast();
 
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -65,12 +64,15 @@ const SupplierManagement = () => {
       setSuppliers(response.data);
       setCurrentPage(1);
     } catch (error) {
+      // Kiểm tra customMessage từ interceptor
+      const errorMessage = error.customMessage || "Không thể tải danh sách nhà cung cấp.";
       toast({
         title: "Lỗi",
-        description: "Không thể tải danh sách nhà cung cấp.",
+        description: errorMessage,
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right",
       });
     }
   };
@@ -86,7 +88,7 @@ const SupplierManagement = () => {
   const handleItemsPerPageChange = (e) => {
     const newItemsPerPage = parseInt(e.target.value);
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset về trang đầu tiên khi thay đổi số lượng hiển thị
+    setCurrentPage(1);
   };
 
   const handleDeleteOpen = (id) => {
@@ -111,9 +113,11 @@ const SupplierManagement = () => {
           setCurrentPage(currentPage - 1);
         }
       } catch (error) {
+        // Kiểm tra customMessage từ interceptor
+        const errorMessage = error.customMessage || "Không thể xóa nhà cung cấp.";
         toast({
           title: "Lỗi",
-          description: "Không thể xóa nhà cung cấp.",
+          description: errorMessage,
           status: "error",
           duration: 3000,
           isClosable: true,

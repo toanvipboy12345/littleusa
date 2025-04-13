@@ -14,17 +14,19 @@ import {
   useToast,
   Grid,
   Text,
-  Select,
   IconButton,
   Image,
   Wrap,
   Box,
   WrapItem,
+  Select,
   Flex,
   Tooltip,
 } from "@chakra-ui/react";
 import { Plus as AddIcon, Trash2 } from "react-feather";
 import axiosInstance from "../../../Api/axiosInstance";
+
+const LOW_STOCK_THRESHOLD = 5; // Ngưỡng số lượng thấp
 
 const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
   const [editedVariant, setEditedVariant] = useState({
@@ -128,7 +130,10 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
       return;
     }
 
-    if (editedVariant.sizes.length === 0 || editedVariant.sizes.some(size => !size.size || size.size.trim() === "")) {
+    if (
+      editedVariant.sizes.length === 0 ||
+      editedVariant.sizes.some((size) => !size.size || size.size.trim() === "")
+    ) {
       toast({
         title: "Lỗi",
         description: "Vui lòng nhập đầy đủ kích thước.",
@@ -138,6 +143,122 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
         position: "top-right",
       });
       return;
+    }
+
+    const lowStockSizes = editedVariant.sizes.filter(
+      (size) => size.quantity <= LOW_STOCK_THRESHOLD
+    );
+    if (lowStockSizes.length > 0) {
+      toast({
+        title: "Cảnh báo",
+        description: `Các kích thước sắp hết hàng: ${lowStockSizes
+          .map((size) => `${size.size} (${size.quantity})`)
+          .join(", ")}`,
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+
+    // So sánh dữ liệu ban đầu (variant) với dữ liệu đã chỉnh sửa (editedVariant)
+    const changes = {};
+
+    // Kiểm tra thay đổi màu sắc
+    if (variant?.color !== editedVariant.color.trim()) {
+      changes.color = {
+        oldValue: variant?.color || "",
+        newValue: editedVariant.color.trim(),
+      };
+    }
+
+    // Kiểm tra thay đổi kích thước (sizes)
+    const originalSizes = variant?.sizes || [];
+    const editedSizes = editedVariant.sizes || [];
+    const sizeChanges = [];
+
+    // So sánh từng kích thước
+    editedSizes.forEach((editedSize, index) => {
+      const originalSize = originalSizes[index] || {};
+      const sizeChange = {};
+
+      if (originalSize.size !== editedSize.size) {
+        sizeChange.size = {
+          oldValue: originalSize.size || "",
+          newValue: editedSize.size,
+        };
+      }
+
+      // Chỉ kiểm tra quantity nếu size đã tồn tại (có id)
+      if (editedSize.id && originalSize.quantity !== editedSize.quantity) {
+        sizeChange.quantity = {
+          oldValue: originalSize.quantity || 0,
+          newValue: editedSize.quantity || 0,
+        };
+      }
+
+      if (Object.keys(sizeChange).length > 0) {
+        sizeChanges.push({ index, changes: sizeChange });
+      }
+    });
+
+    // Kiểm tra kích thước bị xóa
+    if (originalSizes.length > editedSizes.length) {
+      sizeChanges.push({
+        action: "removed",
+        count: originalSizes.length - editedSizes.length,
+      });
+    }
+
+    // Kiểm tra kích thước được thêm
+    if (editedSizes.length > originalSizes.length) {
+      sizeChanges.push({
+        action: "added",
+        count: editedSizes.length - originalSizes.length,
+      });
+    }
+
+    if (sizeChanges.length > 0) {
+      changes.sizes = sizeChanges;
+    }
+
+    // Kiểm tra thay đổi hình ảnh chính
+    if (editedVariant.mainImage) {
+      changes.mainImage = {
+        oldValue: variant?.mainImage || "Không có",
+        newValue: editedVariant.mainImage.name,
+      };
+    }
+
+    // Kiểm tra thay đổi hình ảnh bổ sung
+    if (editedVariant.images && editedVariant.images.length > 0) {
+      changes.images = {
+        oldValue: variant?.images?.length || 0,
+        newValue: editedVariant.images.length,
+        addedFiles: Array.from(editedVariant.images).map((file) => file.name),
+      };
+    }
+
+    // Kiểm tra hình ảnh bổ sung bị xóa
+    if (editedVariant.imageActions && editedVariant.imageActions.length > 0) {
+      const removedImages = editedVariant.imageActions.filter(
+        (action) => action.action === "remove"
+      );
+      if (removedImages.length > 0) {
+        changes.existingImages = {
+          action: "removed",
+          count: removedImages.length,
+          removedPaths: removedImages.map((action) => action.imagePath),
+        };
+      }
+    }
+
+    // In ra console log các thay đổi
+    if (Object.keys(changes).length > 0) {
+      console.log("Các trường đã chỉnh sửa trong biến thể:");
+      console.log(changes);
+    } else {
+      console.log("Không có trường nào được chỉnh sửa trong biến thể.");
     }
 
     const variantData = {
@@ -178,7 +299,7 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
       setEditedVariant((prev) => ({
         ...prev,
         color: response.data.color,
-        sizes: response.data.sizes.map(size => ({
+        sizes: response.data.sizes.map((size) => ({
           size: size.size,
           quantity: size.quantity || 0,
           id: size.id || null,
@@ -190,7 +311,9 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
       }));
 
       if (variantData.imageActions.length > 0) {
-        const removedImages = variantData.imageActions.filter(action => action.action === "remove").length;
+        const removedImages = variantData.imageActions.filter(
+          (action) => action.action === "remove"
+        ).length;
         if (removedImages > 0) {
           toast({
             title: "Thành công",
@@ -203,22 +326,21 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
         }
       }
 
-      if (variantData.imageActions.length === 0 || editedVariant.mainImage || editedVariant.images.length > 0 || editedVariant.color !== variant?.color || JSON.stringify(editedVariant.sizes.map(s => s.size)) !== JSON.stringify(variant?.sizes.map(s => s.size))) {
-        toast({
-          title: "Thành công",
-          description: `Đã ${editedVariant.id ? "cập nhật" : "thêm"} biến thể thành công.`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right",
-        });
-      }
+      toast({
+        title: "Thành công",
+        description: `Đã ${
+          editedVariant.id ? "cập nhật" : "thêm"
+        } biến thể thành công.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
 
       onEditSuccess(response.data);
       onClose();
     } catch (error) {
-      const errorMessage =error.customMessage ||"Lỗi không xác định";
-
+      const errorMessage = error.customMessage || "Lỗi không xác định";
       toast({
         title: "Lỗi",
         description: errorMessage,
@@ -243,8 +365,14 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
     }
 
     try {
-      await axiosInstance.delete(`/api/products/${editedVariant.productId}/variants/${editedVariant.id}`);
-      onEditSuccess({ id: editedVariant.id, productId: editedVariant.productId, deleted: true });
+      await axiosInstance.delete(
+        `/api/products/${editedVariant.productId}/variants/${editedVariant.id}`
+      );
+      onEditSuccess({
+        id: editedVariant.id,
+        productId: editedVariant.productId,
+        deleted: true,
+      });
       toast({
         title: "Thành công",
         description: "Đã xóa biến thể thành công.",
@@ -256,9 +384,8 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
       onClose();
     } catch (error) {
       console.error("Error deleting variant:", error.response?.data || error.message);
-      const errorMessage = error.response?.data?.message || error.message || "Unknown error";
-
-    
+      const errorMessage =
+        error.response?.data?.message || error.message || "Unknown error";
       toast({
         title: "Lỗi",
         description: errorMessage,
@@ -273,7 +400,9 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>{editedVariant.id ? "Chi tiết & Chỉnh sửa biến thể" : "Thêm biến thể mới"}</ModalHeader>
+        <ModalHeader>
+          {editedVariant.id ? "Chi tiết & Chỉnh sửa biến thể" : "Thêm biến thể mới"}
+        </ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <Grid templateRows="auto auto auto auto auto" gap={6}>
@@ -302,14 +431,30 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
             </Flex>
 
             <Box>
-              <Grid templateColumns={editedVariant.sizes.some(size => size.id) ? "2fr 1fr 50px" : "2fr 1fr 50px"} gap={3} alignItems="center">
+              <Grid
+                templateColumns={
+                  editedVariant.sizes.some((size) => size.id)
+                    ? "2fr 1fr 50px"
+                    : "2fr 1fr 50px"
+                }
+                gap={3}
+                alignItems="center"
+              >
                 {editedVariant.sizes.length > 0 && (
                   <Flex gridColumn="span 3" gap={3} mb={2}>
-                    <Text flex="2" color="var(--primary-color)" _dark={{ color: "white" }}>
+                    <Text
+                      flex="2"
+                      color="var(--primary-color)"
+                      _dark={{ color: "white" }}
+                    >
                       Kích thước *
                     </Text>
-                    {editedVariant.sizes.some(size => size.id) && (
-                      <Text flex="1" color="var(--primary-color)" _dark={{ color: "white" }}>
+                    {editedVariant.sizes.some((size) => size.id) && (
+                      <Text
+                        flex="1"
+                        color="var(--primary-color)"
+                        _dark={{ color: "white" }}
+                      >
                         Số lượng
                       </Text>
                     )}
@@ -317,54 +462,93 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
                   </Flex>
                 )}
                 {editedVariant.sizes.map((size, index) => (
-                  <>
-                    <Select
-                      key={`${index}-size`}
-                      value={size.size}
-                      onChange={(e) => handleSizeChange(index, "size", e.target.value)}
-                      placeholder="Chọn kích thước"
-                      variant="outline"
-                      border="1px solid"
-                      borderColor="var(--primary-color)"
-                      bg="transparent"
-                      color="black"
-                      _dark={{
-                        bg: "gray.800",
-                        borderColor: "gray.600",
-                        color: "white",
-                        _placeholder: { color: "gray.400" },
-                      }}
-                    >
-                      <option value="S">S</option>
-                      <option value="M">M</option>
-                      <option value="L">L</option>
-                      <option value="XL">XL</option>
-                      <option value="ONESIZE">ONESIZE</option>
-                      <option value="36">36</option>
-                      <option value="37">37</option>
-                      <option value="38">38</option>
-                      <option value="39">39</option>
-                      <option value="40">40</option>
-                      <option value="41">41</option>
-                      <option value="42">42</option>
-                      <option value="43">43</option>
-                      <option value="XXL">XXL</option>
-                    </Select>
+                  <React.Fragment key={index}>
+                    {size.id ? (
+                      // Hiển thị kích thước hiện có dưới dạng văn bản (không thể chỉnh sửa)
+                      <Text
+                        flex="2"
+                        color="black"
+                        _dark={{ color: "white" }}
+                        border="1px solid"
+                        borderColor="var(--primary-color)"
+                        p={2}
+                        borderRadius="md"
+                      >
+                        {size.size}
+                      </Text>
+                    ) : (
+                      // Cho phép chọn kích thước mới bằng Select
+                      <Select
+                        value={size.size}
+                        onChange={(e) =>
+                          handleSizeChange(index, "size", e.target.value)
+                        }
+                        placeholder="Chọn kích thước"
+                        variant="outline"
+                        border="1px solid"
+                        borderColor="var(--primary-color)"
+                        size={{ base: "sm", md: "md" }}
+                        color="gray.600"
+                        _dark={{
+                          borderColor: "gray.600",
+                          color: "white",
+                          bg: "gray.700",
+                        }}
+                        sx={{
+                          option: {
+                            bg: "white",
+                            color: "gray.600",
+                            _dark: {
+                              bg: "gray.700",
+                              color: "white",
+                            },
+                          },
+                        }}
+                      >
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                        <option value="ONESIZE">ONESIZE</option>
+                        <option value="36">36</option>
+                        <option value="37">37</option>
+                        <option value="38">38</option>
+                        <option value="39">39</option>
+                        <option value="40">40</option>
+                        <option value="41">41</option>
+                        <option value="42">42</option>
+                        <option value="43">43</option>
+                        <option value="XXL">XXL</option>
+                      </Select>
+                    )}
                     {size.id && (
                       <Input
-                        key={`${index}-quantity`}
                         value={size.quantity || 0}
                         isReadOnly
                         placeholder="Số lượng"
                         variant="outline"
                         border="1px solid"
-                        borderColor="var(--primary-color)"
+                        borderColor={
+                          size.quantity <= LOW_STOCK_THRESHOLD
+                            ? "red.500"
+                            : "var(--primary-color)"
+                        }
                         bg="transparent"
-                        color="black"
+                        color={
+                          size.quantity <= LOW_STOCK_THRESHOLD
+                            ? "red.500"
+                            : "black"
+                        }
                         _dark={{
                           bg: "gray.800",
-                          borderColor: "gray.600",
-                          color: "white",
+                          borderColor:
+                            size.quantity <= LOW_STOCK_THRESHOLD
+                              ? "red.500"
+                              : "gray.600",
+                          color:
+                            size.quantity <= LOW_STOCK_THRESHOLD
+                              ? "red.500"
+                              : "white",
                           _placeholder: { color: "gray.400" },
                         }}
                       />
@@ -372,7 +556,6 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
                     {!size.id && <Box />}
                     <Tooltip label="Xóa kích thước" placement="top">
                       <IconButton
-                        key={`${index}-delete`}
                         icon={<Trash2 size={20} />}
                         aria-label="Xóa kích thước"
                         onClick={() => removeSize(index)}
@@ -382,7 +565,7 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
                         }}
                       />
                     </Tooltip>
-                  </>
+                  </React.Fragment>
                 ))}
               </Grid>
             </Box>
@@ -409,7 +592,7 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
               <Flex align="flex-start" gap={4}>
                 <FormControl flex={1}>
                   <FormLabel color="var(--primary-color)" _dark={{ color: "white" }}>
-                    Hình ảnh chính 
+                    Hình ảnh chính
                   </FormLabel>
                   {variant.mainImage && (
                     <Image
@@ -417,16 +600,16 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
                       alt="Hình ảnh chính"
                       boxSize="200px"
                       objectFit="cover"
-                      
                       mb={2}
                     />
                   )}
                 </FormControl>
                 <FormControl flex={1}>
                   <FormLabel color="var(--primary-color)" _dark={{ color: "white" }}>
-                    Hình ảnh bổ sung 
+                    Hình ảnh bổ sung
                   </FormLabel>
-                  {editedVariant.existingImages && editedVariant.existingImages.length > 0 ? (
+                  {editedVariant.existingImages &&
+                  editedVariant.existingImages.length > 0 ? (
                     <Wrap spacing={2}>
                       {editedVariant.existingImages.map((image, index) => (
                         <WrapItem key={index}>
@@ -436,7 +619,6 @@ const EditVariant = ({ isOpen, onClose, variant, onEditSuccess }) => {
                               alt={`Hình ảnh bổ sung ${index + 1}`}
                               boxSize="100px"
                               objectFit="cover"
-                              
                             />
                             <IconButton
                               aria-label="Xóa ảnh bổ sung"

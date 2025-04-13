@@ -42,7 +42,7 @@ const Product = () => {
     brand: [],
     priceMin: "",
     priceMax: "",
-    hasDiscount: false, // Thêm hasDiscount vào filters
+    hasDiscount: false,
   });
   const [sort, setSort] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,7 +62,7 @@ const Product = () => {
     const brand = searchParams.get("brand")?.split(",") || [];
     const priceMin = searchParams.get("priceMin") || "";
     const priceMax = searchParams.get("priceMax") || "";
-    const hasDiscount = searchParams.get("hasDiscount") === "true"; // Lấy hasDiscount từ URL
+    const hasDiscount = searchParams.get("hasDiscount") === "true";
     const sortParam = searchParams.get("sort") || "";
     const pageParam = parseInt(searchParams.get("page") || "0", 10);
 
@@ -71,7 +71,7 @@ const Product = () => {
       brand,
       priceMin,
       priceMax,
-      hasDiscount, // Khởi tạo hasDiscount từ URL
+      hasDiscount,
     });
     setSort(sortParam);
     setPage(pageParam >= 0 ? pageParam : 0);
@@ -80,7 +80,7 @@ const Product = () => {
     fetchBrands();
     fetchCategories();
     fetchProducts(pageParam >= 0 ? pageParam : 0, { category, brand, priceMin, priceMax, hasDiscount, sort: sortParam });
-  }, []); // Chỉ chạy khi mount
+  }, []);
 
   // Theo dõi searchParams khi URL thay đổi từ Header
   useEffect(() => {
@@ -88,7 +88,6 @@ const Product = () => {
     const pageFromUrl = parseInt(searchParams.get("page") || "0", 10);
     const hasDiscountFromUrl = searchParams.get("hasDiscount") === "true";
 
-    // Chỉ fetch lại nếu category hoặc hasDiscount từ URL khác với filters hiện tại
     if (
       JSON.stringify(categoryFromUrl) !== JSON.stringify(filters.category) ||
       hasDiscountFromUrl !== filters.hasDiscount
@@ -98,15 +97,14 @@ const Product = () => {
         category: categoryFromUrl,
         hasDiscount: hasDiscountFromUrl,
       }));
-      setPage(0); // Reset về page 0 khi danh mục hoặc hasDiscount thay đổi
+      setPage(0);
       updateAppliedFilters(categoryFromUrl, filters.brand, filters.priceMin, filters.priceMax, hasDiscountFromUrl);
       fetchProducts(0, { ...filters, category: categoryFromUrl, hasDiscount: hasDiscountFromUrl });
     } else if (pageFromUrl !== page) {
-      // Nếu chỉ page thay đổi, fetch lại với page mới
       setPage(pageFromUrl);
       fetchProducts(pageFromUrl, filters);
     }
-  }, [searchParams]); // Theo dõi searchParams
+  }, [searchParams]);
 
   const updateAppliedFilters = (cat, br, min, max, hasDiscount) => {
     const filtersList = [];
@@ -114,7 +112,7 @@ const Product = () => {
     if (br.length > 0) filtersList.push(`Thương hiệu: ${br.join(", ")}`);
     if (min) filtersList.push(`Giá từ: ${min} đ`);
     if (max) filtersList.push(`Giá đến: ${max} đ`);
-    if (hasDiscount) filtersList.push("Sản phẩm khuyến mại"); // Thêm bộ lọc khuyến mại vào danh sách
+    if (hasDiscount) filtersList.push("Sản phẩm khuyến mại");
     setAppliedFilters(filtersList);
   };
 
@@ -150,7 +148,7 @@ const Product = () => {
             brand: appliedFilters.brand.length > 0 ? appliedFilters.brand.join(",") : undefined,
             priceMin: appliedFilters.priceMin || undefined,
             priceMax: appliedFilters.priceMax || undefined,
-            hasDiscount: appliedFilters.hasDiscount || undefined, // Thêm hasDiscount vào params
+            hasDiscount: appliedFilters.hasDiscount || undefined,
             sort: sort || undefined,
           },
         });
@@ -196,7 +194,7 @@ const Product = () => {
       else if (filterToRemove.startsWith("Thương hiệu:")) newFilters.brand = [];
       else if (filterToRemove.startsWith("Giá từ:")) newFilters.priceMin = "";
       else if (filterToRemove.startsWith("Giá đến:")) newFilters.priceMax = "";
-      else if (filterToRemove === "Sản phẩm khuyến mại") newFilters.hasDiscount = false; // Xóa bộ lọc khuyến mại
+      else if (filterToRemove === "Sản phẩm khuyến mại") newFilters.hasDiscount = false;
       updateAppliedFilters(newFilters.category, newFilters.brand, newFilters.priceMin, newFilters.priceMax, newFilters.hasDiscount);
       fetchProducts(page, newFilters);
       return newFilters;
@@ -209,7 +207,7 @@ const Product = () => {
       brand: [],
       priceMin: "",
       priceMax: "",
-      hasDiscount: false, // Reset hasDiscount
+      hasDiscount: false,
     };
     setFilters(newFilters);
     setSort("");
@@ -235,7 +233,7 @@ const Product = () => {
     if (filters.brand.length > 0) params.set("brand", filters.brand.join(","));
     if (filters.priceMin) params.set("priceMin", filters.priceMin);
     if (filters.priceMax) params.set("priceMax", filters.priceMax);
-    if (filters.hasDiscount) params.set("hasDiscount", filters.hasDiscount.toString()); // Thêm hasDiscount vào params
+    if (filters.hasDiscount) params.set("hasDiscount", filters.hasDiscount.toString());
     if (sort) params.set("sort", sort);
     params.set("page", "0");
     setSearchParams(params);
@@ -345,7 +343,6 @@ const Product = () => {
                 </AccordionPanel>
               </AccordionItem>
 
-              {/* Thêm bộ lọc Sản phẩm khuyến mại */}
               <AccordionItem>
                 <AccordionButton _hover={{ bg: "gray.100" }}>
                   <Box flex="1" textAlign="left">
@@ -475,6 +472,7 @@ const Product = () => {
                       overflow="hidden"
                       transition="transform 0.2s ease"
                       _hover={{ transform: "scale(1.05)", bg: "gray.100" }}
+                      minW={{ base: "150px", md: "180px" }}
                     >
                       <Image
                         src={`${imageBaseUrl}${product.mainImage}`}
@@ -484,7 +482,7 @@ const Product = () => {
                         objectFit="contain"
                         fallbackSrc="https://via.placeholder.com/200"
                       />
-                      <Box p={{ base: 4, md: 4 }} position="relative">
+                      <Box p={{ base: 2, md: 4 }} position="relative">
                         <Heading
                           size={{ base: "xs", md: "sm" }}
                           color="gray.800"
@@ -495,22 +493,49 @@ const Product = () => {
                         >
                           {product.name || "Unnamed Product"}
                         </Heading>
-                        <HStack mt={{ base: 1, md: 2 }} spacing={2}>
+                        <HStack
+                          mt={{ base: 1, md: 2 }}
+                          spacing={1}
+                          wrap="nowrap"
+                          overflow="hidden"
+                        >
                           {product.discountRate === 0 ? (
-                            <Text color="gray.800" fontWeight="bold" fontSize={{ base: "sm", md: "md" }}>
+                            <Text
+                              color="gray.800"
+                              fontWeight="bold"
+                              fontSize={{ base: "xs", md: "sm" }}
+                              whiteSpace="nowrap"
+                            >
                               {product.price?.toLocaleString("vi-VN") || "0"} đ
                             </Text>
                           ) : (
                             <>
-                              <Text fontWeight="bold" fontSize={{ base: "sm", md: "md" }}>
+                              <Text
+                                fontWeight="bold"
+                                fontSize={{ base: "xs", md: "sm" }}
+                                whiteSpace="nowrap"
+                              >
                                 {product.discountPrice?.toLocaleString("vi-VN") || "0"} đ
                               </Text>
-                              <Text color="gray.500" textDecoration="line-through" fontSize={{ base: "sm", md: "md" }}>
+                              <Text
+                                color="gray.500"
+                                textDecoration="line-through"
+                                fontSize={{ base: "xs", md: "sm" }}
+                                whiteSpace="nowrap"
+                              >
                                 {product.price?.toLocaleString("vi-VN") || "0"} đ
                               </Text>
                             </>
                           )}
                         </HStack>
+                        {/* Thêm hiển thị quantitySold */}
+                        <Text
+                          mt={1}
+                          fontSize={{ base: "xs", md: "sm" }}
+                          color="gray.600"
+                        >
+                          Đã bán: {product.quantitySold || 0}
+                        </Text>
                       </Box>
                     </Box>
                   </Link>
@@ -571,6 +596,13 @@ const Product = () => {
                             </>
                           )}
                         </HStack>
+                        {/* Thêm hiển thị quantitySold */}
+                        <Text
+                          fontSize={{ base: "sm", md: "md" }}
+                          color="gray.600"
+                        >
+                          Đã bán: {product.quantitySold || 0}
+                        </Text>
                       </VStack>
                     </Flex>
                   </Link>

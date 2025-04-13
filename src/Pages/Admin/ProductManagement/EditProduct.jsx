@@ -67,9 +67,71 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
   };
 
+  const validateForm = () => {
+    const requiredFields = [
+      { name: "code", label: "Mã sản phẩm" },
+      { name: "name", label: "Tên sản phẩm" },
+      { name: "price", label: "Giá bán" },
+      { name: "brandId", label: "Thương hiệu" },
+      { name: "categoryId", label: "Danh mục" },
+    ];
+
+    // Kiểm tra các trường bắt buộc không được để trống
+    for (const field of requiredFields) {
+      if (!editedProduct[field.name] || editedProduct[field.name].toString().trim() === "") {
+        toast({
+          title: "Lỗi",
+          description: `Vui lòng nhập ${field.label}.`,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+        return false;
+      }
+    }
+
+    // Kiểm tra giá bán phải là số dương
+    const price = parseFloat(editedProduct.price);
+    if (isNaN(price) || price <= 0) {
+      toast({
+        title: "Lỗi",
+        description: "Giá bán phải là số dương.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+      return false;
+    }
+
+    // Kiểm tra tỷ lệ giảm giá (nếu có) phải nằm trong khoảng 0-100
+    if (editedProduct.discountRate) {
+      const discountRate = parseFloat(editedProduct.discountRate);
+      if (isNaN(discountRate) || discountRate < 0 || discountRate > 100) {
+        toast({
+          title: "Lỗi",
+          description: "Tỷ lệ giảm giá phải nằm trong khoảng 0-100%.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("handleSubmit called");
+
+    // Kiểm tra validation trước khi gửi request
+    if (!validateForm()) {
+      return;
+    }
 
     if (!product || !product.id) {
       toast({
@@ -103,7 +165,7 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
           "Content-Type": "multipart/form-data",
         },
       });
-    
+
       toast({
         title: "Thành công",
         description: "Đã cập nhật thông tin sản phẩm.",
@@ -115,13 +177,13 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
       onEditSuccess(response.data);
       onClose();
     } catch (error) {
-      const errorMessage =error.customMessage ||"Lỗi không xác định";
-
+      // Kiểm tra nếu lỗi là 403 và hiển thị custom message
+      const errorMessage = error.customMessage || (error.response?.data?.message || "Không thể cập nhật sản phẩm.");
       toast({
-        title: "Đã có lỗi xảy ra",
-        description: errorMessage,
+        title: "Lỗi",
+        description: typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage),
         status: "error",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
         position: "top-right",
       });
@@ -205,8 +267,7 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
                     }}
                   />
                 </FormControl>
-                <FormControl isRequired flex={{ base: "100%", md: "23%" }}>
-                </FormControl>
+                <FormControl flex={{ base: "100%", md: "23%" }} />
               </HStack>
 
               <HStack spacing={4} align="flex-start" mt={4} flexWrap="wrap" justifyContent={{ base: "flex-start", md: "space-between" }}>
@@ -328,6 +389,7 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
                   border="1px solid"
                   borderColor="var(--primary-color)"
                   bg="transparent"
+                  minH="150px"
                   color="black"
                   _dark={{
                     bg: "gray.800",
@@ -336,10 +398,6 @@ const EditProduct = ({ isOpen, onClose, product, onEditSuccess, brands, categori
                     _placeholder: { color: "gray.400" },
                   }}
                   _hover={{ borderColor: "var(--hover-color)" }}
-                  _focus={{
-                    borderColor: "var(--primary-color)",
-                    boxShadow: "0 0 0 1px var(--primary-color)",
-                  }}
                 />
               </FormControl>
             </Stack>

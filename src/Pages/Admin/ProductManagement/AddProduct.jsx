@@ -170,8 +170,22 @@ const AddProduct = ({ onAddSuccess, brands: externalBrands, categories: external
       setProductId(createdProduct.id);
       setActiveStep(1);
     } catch (error) {  
-      const errorMessage =error.customMessage ||"Lỗi không xác định";
-  
+      let errorMessage = "Lỗi không xác định";
+
+      if (error.response) {
+        const { status, data } = error.response;
+        if (status === 400 && data && data.message) {
+          errorMessage = data.message; // Lấy thông điệp từ server, ví dụ: "Mã sản phẩm đã tồn tại"
+        } else if (status === 403) {
+          errorMessage = "Bạn không có quyền thực hiện hành động này."; // Thông điệp cho lỗi 403
+        } else if (status === 404) {
+          errorMessage = "Sản phẩm không tồn tại.";
+        } else if (data && data.message) {
+          errorMessage = data.message; // Thông điệp lỗi khác từ server
+        }
+      } else if (error.message) {
+        errorMessage = error.message; // Lỗi mạng hoặc lỗi khác từ Axios
+      }  
       toast({
         title: "Đã có lỗi xảy ra",
         description: errorMessage,

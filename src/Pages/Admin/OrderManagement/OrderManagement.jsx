@@ -587,6 +587,17 @@ const OrderManagement = () => {
                       fontSize={{ base: "sm", md: "md" }}
                     />
                   </GridItem>
+                  <GridItem>
+                    <Text fontWeight="bold" mb={1}>
+                      Mã giao dịch:
+                    </Text>
+                    <Input
+                      value={selectedOrder.transactionId || "N/A"}
+                      isReadOnly
+                      size={{ base: "sm", md: "md" }}
+                      fontSize={{ base: "sm", md: "md" }}
+                    />
+                  </GridItem>
                   <GridItem colSpan={{ base: 1, md: 2 }}>
                     <Text fontWeight="bold" mb={1}>
                       Danh sách sản phẩm:

@@ -39,16 +39,31 @@ import {
   FormLabel,
   Select,
 } from "@chakra-ui/react";
-import { Trash2, Edit2, Search, ChevronLeft, ChevronRight, Eye } from "react-feather";
+import { Trash2, Edit2, Search, ChevronLeft, ChevronRight, Eye, Plus } from "react-feather";
 import { useDisclosure } from "@chakra-ui/react";
 import EditAdmin from "./EditAdmin";
+import AddAdmin from "./AddAdmin";
+
+const roleLabels = {
+  super_admin: "Super Admin",
+  product_manager: "Product Manager",
+  order_manager: "Order Manager",
+  marketing_manager: "Marketing Manager",
+  customer_support: "Customer Support",
+  blog_manager: "Blog Manager",
+};
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+  const [admins, setAdmins] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [filteredAdmins, setFilteredAdmins] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPageUsers, setCurrentPageUsers] = useState(1);
+  const [currentPageAdmins, setCurrentPageAdmins] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
   const toast = useToast();
 
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -60,19 +75,25 @@ const UserManagement = () => {
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
   const [selectedUser, setSelectedUser] = useState(null);
 
+  const { isOpen: isAddOpen, onOpen: onAddOpen, onClose: onAddClose } = useDisclosure();
+
   useEffect(() => {
     fetchUsers();
+    fetchAdmins();
   }, []);
 
-  const fetchUsers = async (search = "") => {
+  const fetchUsers = async () => {
     try {
-      const response = await axiosInstance.get(`/user${search ? `?search=${encodeURIComponent(search)}` : ""}`);
-      setUsers(response.data);
-      setCurrentPage(1);
+      const response = await axiosInstance.get(`/user`);
+      const customerData = response.data.filter((user) => user.role === "user");
+      setUsers(customerData);
+      setFilteredUsers(customerData);
+      setCurrentPageUsers(1);
     } catch (error) {
+      const errorMessage = error.customMessage || "Không thể tải danh sách khách hàng.";
       toast({
         title: "Lỗi",
-        description: "Không thể tải danh sách người dùng.",
+        description: errorMessage,
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -81,16 +102,58 @@ const UserManagement = () => {
     }
   };
 
+  const fetchAdmins = async () => {
+    setIsLoadingAdmins(true);
+    try {
+      const response = await axiosInstance.get(`/api/admin-list`);
+      setAdmins(response.data);
+      setFilteredAdmins(response.data);
+      setCurrentPageAdmins(1);
+    } catch (error) {
+      const errorMessage = error.customMessage || "Không thể tải danh sách admin.";
+      toast({
+        title: "Lỗi",
+        description: errorMessage,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    } finally {
+      setIsLoadingAdmins(false);
+    }
+  };
+
   const handleSearch = (e) => {
-    const value = e.target.value;
+    const value = e.target.value.toLowerCase();
     setSearchTerm(value);
-    fetchUsers(value);
+
+    if (activeTab === 0) {
+      const filtered = users.filter((user) => {
+        const fullName = `${user.lastName || ""} ${user.firstName || ""}`.toLowerCase();
+        const nameMatch = user.firstName?.toLowerCase().includes(value) || fullName.includes(value);
+        const contactMatch = user.phone?.toLowerCase().includes(value) || user.email?.toLowerCase().includes(value);
+        return nameMatch || contactMatch;
+      });
+      setFilteredUsers(filtered);
+      setCurrentPageUsers(1);
+    } else {
+      const filtered = admins.filter((admin) => {
+        const fullName = `${admin.lastName || ""} ${admin.firstName || ""}`.toLowerCase();
+        const nameMatch = admin.firstName?.toLowerCase().includes(value) || fullName.includes(value);
+        const contactMatch = admin.phone?.toLowerCase().includes(value) || admin.email?.toLowerCase().includes(value);
+        return nameMatch || contactMatch;
+      });
+      setFilteredAdmins(filtered);
+      setCurrentPageAdmins(1);
+    }
   };
 
   const handleItemsPerPageChange = (e) => {
-    const newItemsPerPage = parseInt(e.target.value);
+    const newItemsPerPage = parseInt(e.target.value, 10);
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1);
+    setCurrentPageUsers(1);
+    setCurrentPageAdmins(1);
   };
 
   const handleDeleteOpen = (id) => {
@@ -102,7 +165,15 @@ const UserManagement = () => {
     if (userIdToDelete) {
       try {
         await axiosInstance.delete(`/user/${userIdToDelete}`);
-        setUsers(users.filter((user) => user.id !== userIdToDelete));
+        if (activeTab === 0) {
+          const updatedUsers = users.filter((user) => user.id !== userIdToDelete);
+          setUsers(updatedUsers);
+          setFilteredUsers(updatedUsers);
+        } else {
+          const updatedAdmins = admins.filter((admin) => admin.id !== userIdToDelete);
+          setAdmins(updatedAdmins);
+          setFilteredAdmins(updatedAdmins);
+        }
         toast({
           title: "Thành công",
           description: "Đã xóa người dùng.",
@@ -111,16 +182,13 @@ const UserManagement = () => {
           isClosable: true,
           position: "top-right",
         });
-        if (currentUsers.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
+        if (activeTab === 0 && currentUsers.length === 1 && currentPageUsers > 1) {
+          setCurrentPageUsers(currentPageUsers - 1);
+        } else if (activeTab === 1 && currentAdmins.length === 1 && currentPageAdmins > 1) {
+          setCurrentPageAdmins(currentPageAdmins - 1);
         }
       } catch (error) {
-        const errorMessage =
-          error.customMessage ||
-          error.response?.data?.error ||
-          error.response?.data?.message ||
-          error.message ||
-          "Không thể xóa người dùng.";
+        const errorMessage = error.customMessage || "Không thể xóa người dùng.";
         toast({
           title: "Lỗi",
           description: errorMessage,
@@ -141,12 +209,48 @@ const UserManagement = () => {
     onEditOpen();
   };
 
-  const handleEditSuccess = (updatedAdmin) => {
-    setUsers(
-      users.map((user) =>
-        user.id === updatedAdmin.id ? updatedAdmin : user
+  const handleEditSuccess = async (updatedAdmin) => {
+    // Cập nhật cục bộ state admins và filteredAdmins, bảo toàn adminRoles nếu không có trong updatedAdmin
+    setAdmins((prevAdmins) =>
+      prevAdmins.map((admin) =>
+        admin.id === updatedAdmin.id
+          ? {
+              ...admin,
+              ...updatedAdmin,
+              adminRoles: updatedAdmin.adminRoles || admin.adminRoles, // Bảo toàn adminRoles
+            }
+          : admin
       )
     );
+    setFilteredAdmins((prevFilteredAdmins) =>
+      prevFilteredAdmins.map((admin) =>
+        admin.id === updatedAdmin.id
+          ? {
+              ...admin,
+              ...updatedAdmin,
+              adminRoles: updatedAdmin.adminRoles || admin.adminRoles, // Bảo toàn adminRoles
+            }
+          : admin
+      )
+    );
+
+    // Gọi lại fetchAdmins để đồng bộ với server
+    try {
+      const response = await axiosInstance.get(`/api/admin-list`);
+      setAdmins(response.data);
+      setFilteredAdmins(response.data);
+    } catch (error) {
+      console.error("Lỗi khi làm mới danh sách admin:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể làm mới danh sách admin.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+
     onEditClose();
   };
 
@@ -155,33 +259,52 @@ const UserManagement = () => {
     onDetailOpen();
   };
 
-  const customers = users.filter((user) => user.role === "user");
-  const admins = users.filter((user) => user.role === "admin");
+  const handleAddSuccess = async () => {
+    await fetchAdmins();
+    onAddClose();
+  };
 
-  const paginatedUsers = activeTab === 0 ? customers : admins;
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentUsers = paginatedUsers.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(paginatedUsers.length / itemsPerPage);
+  const indexOfLastUser = currentPageUsers * itemsPerPage;
+  const indexOfFirstUser = indexOfLastUser - itemsPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPagesUsers = Math.ceil(filteredUsers.length / itemsPerPage);
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+  const handleNextPageUsers = () => {
+    if (currentPageUsers < totalPagesUsers) {
+      setCurrentPageUsers(currentPageUsers + 1);
     }
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+  const handlePrevPageUsers = () => {
+    if (currentPageUsers > 1) {
+      setCurrentPageUsers(currentPageUsers - 1);
     }
+  };
+
+  const indexOfLastAdmin = currentPageAdmins * itemsPerPage;
+  const indexOfFirstAdmin = indexOfLastAdmin - itemsPerPage;
+  const currentAdmins = filteredAdmins.slice(indexOfFirstAdmin, indexOfLastAdmin);
+  const totalPagesAdmins = Math.ceil(filteredAdmins.length / itemsPerPage);
+
+  const handleNextPageAdmins = () => {
+    if (currentPageAdmins < totalPagesAdmins) {
+      setCurrentPageAdmins(currentPageAdmins + 1);
+    }
+  };
+
+  const handlePrevPageAdmins = () => {
+    if (currentPageAdmins > 1) {
+      setCurrentPageAdmins(currentPageAdmins - 1);
+    }
+  };
+
+  const getRoleLabel = (roles) => {
+    if (!roles || roles.length === 0) return "N/A";
+    return roles.map((role) => roleLabels[role] || role).join(", ");
   };
 
   return (
-    <Box
-      p={{ base: 2, md: 4 }}
-      mx="auto"
-      maxW={{ base: "100%" }}
-    >
+    <Box p={{ base: 2, md: 4 }} mx="auto" maxW={{ base: "100%" }}>
       <Tabs index={activeTab} onChange={(index) => setActiveTab(index)}>
         <TabList mb={{ base: 2, md: 4 }} flexWrap="wrap">
           <Tab fontSize={{ base: "sm", md: "md" }}>Quản lý khách hàng</Tab>
@@ -189,7 +312,6 @@ const UserManagement = () => {
         </TabList>
 
         <TabPanels>
-          {/* Tab Quản lý khách hàng (role: user) */}
           <TabPanel p={0}>
             <Stack spacing={{ base: 2, md: 4 }} mb={{ base: 2, md: 4 }}>
               <Flex
@@ -215,17 +337,8 @@ const UserManagement = () => {
                   _dark={{ color: "white", _placeholder: { color: "white" } }}
                   flex={{ base: "1", md: "0 1 50%" }}
                 />
-                <HStack
-                  spacing={2}
-                  flexShrink={0}
-                  justify={{ base: "center", md: "flex-end" }}
-                >
-                  <Text
-                    fontSize={{ base: "sm", md: "md" }}
-                    whiteSpace="nowrap"
-                    color="gray.600"
-                    _dark={{ color: "gray.300" }}
-                  >
+                <HStack spacing={2} flexShrink={0} justify={{ base: "center", md: "flex-end" }}>
+                  <Text fontSize={{ base: "sm", md: "md" }} whiteSpace="nowrap" color="gray.600" _dark={{ color: "gray.300" }}>
                     Hiển thị:
                   </Text>
                   <Select
@@ -235,19 +348,12 @@ const UserManagement = () => {
                     w={{ base: "100px", md: "120px" }}
                     borderColor="gray.300"
                     color="gray.600"
-                    _dark={{
-                      borderColor: "gray.600",
-                      color: "white",
-                      bg: "gray.700",
-                    }}
+                    _dark={{ borderColor: "gray.600", color: "white", bg: "gray.700" }}
                     sx={{
                       option: {
                         bg: "white",
                         color: "gray.600",
-                        _dark: {
-                          bg: "gray.700",
-                          color: "white",
-                        },
+                        _dark: { bg: "gray.700", color: "white" },
                       },
                     }}
                   >
@@ -256,25 +362,15 @@ const UserManagement = () => {
                     <option value={15}>15</option>
                     <option value={20}>20</option>
                   </Select>
-                  <Text
-                    fontSize={{ base: "sm", md: "md" }}
-                    whiteSpace="nowrap"
-                    color="gray.600"
-                    _dark={{ color: "gray.300" }}
-                  >
+                  <Text fontSize={{ base: "sm", md: "md" }} whiteSpace="nowrap" color="gray.600" _dark={{ color: "gray.300" }}>
                     khách hàng/trang
                   </Text>
                 </HStack>
               </Flex>
             </Stack>
 
-            {/* Bảng trên desktop */}
             <Box overflowX={{ base: "auto", md: "visible" }} display={{ base: "block", md: "block" }}>
-              <Table
-                variant="simple"
-                size={{ base: "sm", md: "md" }}
-                display={{ base: "none", md: "table" }}
-              >
+              <Table variant="simple" size={{ base: "sm", md: "md" }} display={{ base: "none", md: "table" }}>
                 <Thead>
                   <Tr>
                     <Th>ID</Th>
@@ -291,10 +387,10 @@ const UserManagement = () => {
                     <Tr key={user.id}>
                       <Td>{user.id}</Td>
                       <Td>{user.lastName || "N/A"}</Td>
-                      <Td>{user.firstName || "N/A"}</Td> {/* Sửa lỗi cú pháp ở đây */}
+                      <Td>{user.firstName || "N/A"}</Td>
                       <Td>{user.email}</Td>
                       <Td>{user.phone || "N/A"}</Td>
-                      <Td>{new Date(user.createdAt).toLocaleString()}</Td>
+                      <Td>{user.createdAt ? new Date(user.createdAt).toLocaleString() : "N/A"}</Td>
                       <Td>
                         <Flex align="center" gap={2}>
                           <IconButton
@@ -318,21 +414,9 @@ const UserManagement = () => {
                 </Tbody>
               </Table>
 
-              {/* Danh sách dạng thẻ trên mobile */}
-              <VStack
-                spacing={4}
-                align="stretch"
-                display={{ base: "flex", md: "none" }}
-              >
+              <VStack spacing={4} align="stretch" display={{ base: "flex", md: "none" }}>
                 {currentUsers.map((user) => (
-                  <Box
-                    key={user.id}
-                    p={3}
-                    borderWidth="1px"
-                    borderRadius="md"
-                    bg="white"
-                    _dark={{ bg: "gray.800" }}
-                  >
+                  <Box key={user.id} p={3} borderWidth="1px" borderRadius="md" bg="white" _dark={{ bg: "gray.800" }}>
                     <Flex justify="space-between" align="center">
                       <VStack align="start" spacing={1}>
                         <Text fontWeight="bold">ID: {user.id}</Text>
@@ -340,7 +424,7 @@ const UserManagement = () => {
                         <Text>Tên: {user.firstName || "N/A"}</Text>
                         <Text fontSize="sm">Email: {user.email}</Text>
                         <Text fontSize="sm">Số điện thoại: {user.phone || "N/A"}</Text>
-                        <Text fontSize="sm">Ngày tạo: {new Date(user.createdAt).toLocaleString()}</Text>
+                        <Text fontSize="sm">Ngày tạo: {user.createdAt ? new Date(user.createdAt).toLocaleString() : "N/A"}</Text>
                       </VStack>
                       <VStack spacing={2}>
                         <IconButton
@@ -364,8 +448,7 @@ const UserManagement = () => {
               </VStack>
             </Box>
 
-            {/* Phân trang */}
-            {paginatedUsers.length > 0 && (
+            {filteredUsers.length > 0 && (
               <Flex
                 direction={{ base: "column", md: "row" }}
                 justify={{ base: "center", md: "space-between" }}
@@ -376,32 +459,31 @@ const UserManagement = () => {
                 <HStack spacing={{ base: 1, md: 2 }}>
                   <IconButton
                     icon={<ChevronLeft size={{ base: 16, md: 20 }} />}
-                    onClick={handlePrevPage}
-                    isDisabled={currentPage === 1}
+                    onClick={handlePrevPageUsers}
+                    isDisabled={currentPageUsers === 1}
                     aria-label="Trang trước"
                     variant="outline"
                     size={{ base: "xs", md: "sm" }}
                   />
                   <Text fontSize={{ base: "sm", md: "md" }}>
-                    Trang {currentPage} / {totalPages}
+                    Trang {currentPageUsers} / {totalPagesUsers}
                   </Text>
                   <IconButton
                     icon={<ChevronRight size={{ base: 16, md: 20 }} />}
-                    onClick={handleNextPage}
-                    isDisabled={currentPage === totalPages}
+                    onClick={handleNextPageUsers}
+                    isDisabled={currentPageUsers === totalPagesUsers}
                     aria-label="Trang sau"
                     variant="outline"
                     size={{ base: "xs", md: "sm" }}
                   />
                 </HStack>
                 <Text fontSize={{ base: "sm", md: "md" }}>
-                  Tổng: {paginatedUsers.length} khách hàng
+                  Tổng: {filteredUsers.length} khách hàng
                 </Text>
               </Flex>
             )}
           </TabPanel>
 
-          {/* Tab Quản lý admin (role: admin) */}
           <TabPanel p={0}>
             <Stack spacing={{ base: 2, md: 4 }} mb={{ base: 2, md: 4 }}>
               <Flex
@@ -417,7 +499,7 @@ const UserManagement = () => {
                   leftIcon={<Search size={20} />}
                   variant="outline"
                   borderColor="var(--primary-color)"
-                  _hover={{ borderColor: "var(--hover-color)" }}
+                  _hover={{ borderColor: "var(---hover-color)" }}
                   _focus={{
                     borderColor: "var(--primary-color)",
                     boxShadow: "0 0 0 1px var(--primary-color)",
@@ -427,17 +509,16 @@ const UserManagement = () => {
                   _dark={{ color: "white", _placeholder: { color: "white" } }}
                   flex={{ base: "1", md: "0 1 50%" }}
                 />
-                <HStack
-                  spacing={2}
-                  flexShrink={0}
-                  justify={{ base: "center", md: "flex-end" }}
-                >
-                  <Text
-                    fontSize={{ base: "sm", md: "md" }}
-                    whiteSpace="nowrap"
-                    color="gray.600"
-                    _dark={{ color: "gray.300" }}
+                <HStack spacing={2} flexShrink={0} justify={{ base: "center", md: "flex-end" }}>
+                  <Button
+                    leftIcon={<Plus size={16} />}
+                    colorScheme="blue"
+                    size={{ base: "sm", md: "md" }}
+                    onClick={onAddOpen}
                   >
+                    Thêm admin
+                  </Button>
+                  <Text fontSize={{ base: "sm", md: "md" }} whiteSpace="nowrap" color="gray.600" _dark={{ color: "gray.300" }}>
                     Hiển thị:
                   </Text>
                   <Select
@@ -447,19 +528,12 @@ const UserManagement = () => {
                     w={{ base: "100px", md: "120px" }}
                     borderColor="gray.300"
                     color="gray.600"
-                    _dark={{
-                      borderColor: "gray.600",
-                      color: "white",
-                      bg: "gray.700",
-                    }}
+                    _dark={{ borderColor: "gray.600", color: "white", bg: "gray.700" }}
                     sx={{
                       option: {
                         bg: "white",
                         color: "gray.600",
-                        _dark: {
-                          bg: "gray.700",
-                          color: "white",
-                        },
+                        _dark: { bg: "gray.700", color: "white" },
                       },
                     }}
                   >
@@ -468,12 +542,7 @@ const UserManagement = () => {
                     <option value={15}>15</option>
                     <option value={20}>20</option>
                   </Select>
-                  <Text
-                    fontSize={{ base: "sm", md: "md" }}
-                    whiteSpace="nowrap"
-                    color="gray.600"
-                    _dark={{ color: "gray.300" }}
-                  >
+                  <Text fontSize={{ base: "sm", md: "md" }} whiteSpace="nowrap" color="gray.600" _dark={{ color: "gray.300" }}>
                     admin/trang
                   </Text>
                 </HStack>
@@ -481,100 +550,97 @@ const UserManagement = () => {
             </Stack>
 
             <Box overflowX={{ base: "auto", md: "visible" }} display={{ base: "block", md: "block" }}>
-              <Table
-                variant="simple"
-                size={{ base: "sm", md: "md" }}
-                display={{ base: "none", md: "table" }}
-              >
-                <Thead>
-                  <Tr>
-                    <Th>ID</Th>
-                    <Th>Họ</Th>
-                    <Th>Tên</Th>
-                    <Th>Email</Th>
-                    <Th>Số điện thoại</Th>
-                    <Th>Tên đăng nhập</Th>
-                    <Th>Thao tác</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {currentUsers.map((admin) => (
-                    <Tr key={admin.id}>
-                      <Td>{admin.id}</Td>
-                      <Td>{admin.lastName || "N/A"}</Td>
-                      <Td>{admin.firstName || "N/A"}</Td>
-                      <Td>{admin.email}</Td>
-                      <Td>{admin.phone || "N/A"}</Td>
-                      <Td>{admin.username || "N/A"}</Td>
-                      <Td>
-                        <Flex align="center" gap={2}>
-                          <IconButton
-                            icon={<Edit2 size={{ base: 16, md: 18 }} />}
-                            aria-label="Sửa admin"
-                            onClick={() => handleEditOpen(admin)}
-                            variant="outline"
-                            size={{ base: "xs", md: "sm" }}
-                          />
-                          <IconButton
-                            icon={<Trash2 size={{ base: 16, md: 18 }} />}
-                            aria-label="Xóa admin"
-                            onClick={() => handleDeleteOpen(admin.id)}
-                            variant="outline"
-                            size={{ base: "xs", md: "sm" }}
-                          />
-                        </Flex>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+              {isLoadingAdmins ? (
+                <Text textAlign="center" py={4}>Đang tải danh sách admin...</Text>
+              ) : (
+                <>
+                  <Table variant="simple" size={{ base: "sm", md: "md" }} display={{ base: "none", md: "table" }}>
+                    <Thead>
+                      <Tr>
+                        <Th>ID</Th>
+                        <Th>Họ</Th>
+                        <Th>Tên</Th>
+                        <Th>Email</Th>
+                        <Th>Số điện thoại</Th>
+                        <Th>Tên đăng nhập</Th>
+                        <Th>Vai trò</Th>
+                        <Th>Ngày tạo</Th>
+                        <Th>Thao tác</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {currentAdmins.map((admin) => (
+                        <Tr key={admin.id}>
+                          <Td>{admin.id || "N/A"}</Td>
+                          <Td>{admin.lastName || "N/A"}</Td>
+                          <Td>{admin.firstName || "N/A"}</Td>
+                          <Td>{admin.email || "N/A"}</Td>
+                          <Td>{admin.phone || "N/A"}</Td>
+                          <Td>{admin.username || "N/A"}</Td>
+                          <Td>{getRoleLabel(admin.adminRoles)}</Td>
+                          <Td>{admin.createdAt ? new Date(admin.createdAt).toLocaleString() : "N/A"}</Td>
+                          <Td>
+                            <Flex align="center" gap={2}>
+                              <IconButton
+                                icon={<Edit2 size={{ base: 16, md: 18 }} />}
+                                aria-label="Sửa admin"
+                                onClick={() => handleEditOpen(admin)}
+                                variant="outline"
+                                size={{ base: "xs", md: "sm" }}
+                              />
+                              <IconButton
+                                icon={<Trash2 size={{ base: 16, md: 18 }} />}
+                                aria-label="Xóa admin"
+                                onClick={() => handleDeleteOpen(admin.id)}
+                                variant="outline"
+                                size={{ base: "xs", md: "sm" }}
+                              />
+                            </Flex>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
 
-              <VStack
-                spacing={4}
-                align="stretch"
-                display={{ base: "flex", md: "none" }}
-              >
-                {currentUsers.map((admin) => (
-                  <Box
-                    key={admin.id}
-                    p={3}
-                    borderWidth="1px"
-                    borderRadius="md"
-                    bg="white"
-                    _dark={{ bg: "gray.800" }}
-                  >
-                    <Flex justify="space-between" align="center">
-                      <VStack align="start" spacing={1}>
-                        <Text fontWeight="bold">ID: {admin.id}</Text>
-                        <Text>Họ: {admin.lastName || "N/A"}</Text>
-                        <Text>Tên: {admin.firstName || "N/A"}</Text>
-                        <Text fontSize="sm">Email: {admin.email}</Text>
-                        <Text fontSize="sm">Số điện thoại: {admin.phone || "N/A"}</Text>
-                        <Text fontSize="sm">Tên đăng nhập: {admin.username || "N/A"}</Text>
-                      </VStack>
-                      <VStack spacing={2}>
-                        <IconButton
-                          icon={<Edit2 size={16} />}
-                          aria-label="Sửa admin"
-                          onClick={() => handleEditOpen(admin)}
-                          variant="outline"
-                          size="xs"
-                        />
-                        <IconButton
-                          icon={<Trash2 size={16} />}
-                          aria-label="Xóa admin"
-                          onClick={() => handleDeleteOpen(admin.id)}
-                          variant="outline"
-                          size="xs"
-                        />
-                      </VStack>
-                    </Flex>
-                  </Box>
-                ))}
-              </VStack>
+                  <VStack spacing={4} align="stretch" display={{ base: "flex", md: "none" }}>
+                    {currentAdmins.map((admin) => (
+                      <Box key={admin.id} p={3} borderWidth="1px" borderRadius="md" bg="white" _dark={{ bg: "gray.800" }}>
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={1}>
+                            <Text fontWeight="bold">ID: {admin.id || "N/A"}</Text>
+                            <Text>Họ: {admin.lastName || "N/A"}</Text>
+                            <Text>Tên: {admin.firstName || "N/A"}</Text>
+                            <Text fontSize="sm">Email: {admin.email || "N/A"}</Text>
+                            <Text fontSize="sm">Số điện thoại: {admin.phone || "N/A"}</Text>
+                            <Text fontSize="sm">Tên đăng nhập: {admin.username || "N/A"}</Text>
+                            <Text fontSize="sm">Vai trò: {getRoleLabel(admin.adminRoles)}</Text>
+                            <Text fontSize="sm">Ngày tạo: {admin.createdAt ? new Date(admin.createdAt).toLocaleString() : "N/A"}</Text>
+                          </VStack>
+                          <VStack spacing={2}>
+                            <IconButton
+                              icon={<Edit2 size={16} />}
+                              aria-label="Sửa admin"
+                              onClick={() => handleEditOpen(admin)}
+                              variant="outline"
+                              size="xs"
+                            />
+                            <IconButton
+                              icon={<Trash2 size={16} />}
+                              aria-label="Xóa admin"
+                              onClick={() => handleDeleteOpen(admin.id)}
+                              variant="outline"
+                              size="xs"
+                            />
+                          </VStack>
+                        </Flex>
+                      </Box>
+                    ))}
+                  </VStack>
+                </>
+              )}
             </Box>
 
-            {paginatedUsers.length > 0 && (
+            {filteredAdmins.length > 0 && !isLoadingAdmins && (
               <Flex
                 direction={{ base: "column", md: "row" }}
                 justify={{ base: "center", md: "space-between" }}
@@ -585,26 +651,26 @@ const UserManagement = () => {
                 <HStack spacing={{ base: 1, md: 2 }}>
                   <IconButton
                     icon={<ChevronLeft size={{ base: 16, md: 20 }} />}
-                    onClick={handlePrevPage}
-                    isDisabled={currentPage === 1}
+                    onClick={handlePrevPageAdmins}
+                    isDisabled={currentPageAdmins === 1}
                     aria-label="Trang trước"
                     variant="outline"
                     size={{ base: "xs", md: "sm" }}
                   />
                   <Text fontSize={{ base: "sm", md: "md" }}>
-                    Trang {currentPage} / {totalPages}
+                    Trang {currentPageAdmins} / {totalPagesAdmins}
                   </Text>
                   <IconButton
                     icon={<ChevronRight size={{ base: 16, md: 20 }} />}
-                    onClick={handleNextPage}
-                    isDisabled={currentPage === totalPages}
+                    onClick={handleNextPageAdmins}
+                    isDisabled={currentPageAdmins === totalPagesAdmins}
                     aria-label="Trang sau"
                     variant="outline"
                     size={{ base: "xs", md: "sm" }}
                   />
                 </HStack>
                 <Text fontSize={{ base: "sm", md: "md" }}>
-                  Tổng: {paginatedUsers.length} admin
+                  Tổng: {filteredAdmins.length} admin
                 </Text>
               </Flex>
             )}
@@ -612,7 +678,6 @@ const UserManagement = () => {
         </TabPanels>
       </Tabs>
 
-      {/* Dialog xác nhận xóa */}
       <AlertDialog isOpen={isDeleteOpen} onClose={onDeleteClose} leastDestructiveRef={undefined}>
         <AlertDialogOverlay>
           <AlertDialogContent>
@@ -626,12 +691,7 @@ const UserManagement = () => {
               <Button onClick={onDeleteClose} variant="ghost">
                 Hủy
               </Button>
-              <Button
-                colorScheme="red"
-                onClick={handleDeleteConfirm}
-                ml={3}
-                variant="solid"
-              >
+              <Button colorScheme="red" onClick={handleDeleteConfirm} ml={3} variant="solid">
                 Xóa
               </Button>
             </AlertDialogFooter>
@@ -639,15 +699,10 @@ const UserManagement = () => {
         </AlertDialogOverlay>
       </AlertDialog>
 
-      {/* Dialog chỉnh sửa admin */}
-      <EditAdmin
-        isOpen={isEditOpen}
-        onClose={onEditClose}
-        admin={adminToEdit}
-        onEditSuccess={handleEditSuccess}
-      />
+      <EditAdmin isOpen={isEditOpen} onClose={onEditClose} admin={adminToEdit} onEditSuccess={handleEditSuccess} />
 
-      {/* Modal xem chi tiết user */}
+      <AddAdmin isOpen={isAddOpen} onClose={onAddClose} onAddSuccess={handleAddSuccess} />
+
       <Modal isOpen={isDetailOpen} onClose={onDetailClose}>
         <ModalOverlay />
         <ModalContent maxW="800px">
@@ -656,11 +711,10 @@ const UserManagement = () => {
           <ModalBody>
             {selectedUser && (
               <VStack spacing={4} align="stretch">
-                {/* Thông tin cơ bản */}
                 <Flex wrap="wrap" gap={4}>
                   <FormControl flex="1" minW="150px">
                     <FormLabel>ID</FormLabel>
-                    <Input value={selectedUser.id} isReadOnly />
+                    <Input value={selectedUser.id || "N/A"} isReadOnly />
                   </FormControl>
                   <FormControl flex="1" minW="150px">
                     <FormLabel>Họ</FormLabel>
@@ -678,7 +732,7 @@ const UserManagement = () => {
 
                 <FormControl>
                   <FormLabel>Email</FormLabel>
-                  <Input value={selectedUser.email} isReadOnly />
+                  <Input value={selectedUser.email || "N/A"} isReadOnly />
                 </FormControl>
 
                 <Flex wrap="wrap" gap={4}>
@@ -692,22 +746,24 @@ const UserManagement = () => {
                   </FormControl>
                   <FormControl flex="1" minW="200px">
                     <FormLabel>Vai trò</FormLabel>
-                    <Input value={selectedUser.role} isReadOnly />
+                    <Input
+                      value={selectedUser.role === "admin" ? getRoleLabel(selectedUser.adminRoles) : selectedUser.role || "N/A"}
+                      isReadOnly
+                    />
                   </FormControl>
                 </Flex>
 
                 <Flex wrap="wrap" gap={4}>
                   <FormControl flex="1" minW="300px">
                     <FormLabel>Ngày tạo</FormLabel>
-                    <Input value={new Date(selectedUser.createdAt).toLocaleString()} isReadOnly />
+                    <Input value={selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString() : "N/A"} isReadOnly />
                   </FormControl>
                   <FormControl flex="1" minW="300px">
                     <FormLabel>Ngày cập nhật</FormLabel>
-                    <Input value={new Date(selectedUser.updatedAt).toLocaleString()} isReadOnly />
+                    <Input value={selectedUser.updatedAt ? new Date(selectedUser.updatedAt).toLocaleString() : "N/A"} isReadOnly />
                   </FormControl>
                 </Flex>
 
-                {/* Thông tin địa chỉ */}
                 <Text fontWeight="bold" mt={4}>Địa chỉ</Text>
                 {selectedUser.address ? (
                   <VStack align="stretch" spacing={4}>
@@ -740,7 +796,6 @@ const UserManagement = () => {
                   <Text>Không có thông tin địa chỉ</Text>
                 )}
 
-                {/* Thông tin Google */}
                 <Text fontWeight="bold" mt={4}>Thông tin Google</Text>
                 {selectedUser.google ? (
                   <VStack align="stretch" spacing={4}>

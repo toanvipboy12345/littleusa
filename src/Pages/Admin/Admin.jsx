@@ -16,6 +16,7 @@ import Statistics from "../Admin/Stats/Statistics";
 import Notifications from "../Admin/NotificationsManagement/Notifications";
 import BlogsManagement from "../Admin/BlogsManagement/BlogsManagement";
 import AdminSettings from "./AdminSettings";
+// import logo from "../../assets/Images/logo.jpg"; // Thay đổi đường dẫn đến logo của bạn
 import {
   Box,
   Flex,
@@ -37,6 +38,7 @@ import {
   DrawerContent,
   DrawerCloseButton,
   useDisclosure,
+  Image,
 } from "@chakra-ui/react";
 import {
   BarChart2,
@@ -125,7 +127,7 @@ const Admin = () => {
       case "addPurchaseOrder":
         return <Box><AddPurchaseOrder /></Box>;
       case "purchaseOrders":
-        return <Box><PurchaseOrderManagement /></Box>;
+        return <Box><PurchaseOrderManagement setActiveMenu={setActiveMenu} /></Box>;
       case "blogs":
         return <Box><BlogsManagement /></Box>;
       case "settings":
@@ -140,13 +142,22 @@ const Admin = () => {
     onClose();
   };
 
+  // Hàm xử lý đăng xuất, chuyển về light mode nếu đang ở dark mode
+  const handleLogoutWithModeSwitch = () => {
+    if (colorMode === "dark") {
+      toggleColorMode(); // Chuyển về light mode nếu đang ở dark mode
+    }
+    handleLogout(); // Gọi hàm đăng xuất từ context
+  };
+
   const renderMenuItem = (menuKey, label, icon, isLogout = false) => (
     <Button
       onClick={() => {
         if (isLogout) {
-          handleLogout();
+          handleLogoutWithModeSwitch(); // Sử dụng hàm mới khi đăng xuất
+        } else {
+          handleMenuClick(menuKey);
         }
-        handleMenuClick(menuKey);
       }}
       w="full"
       justifyContent={isSidebarCollapsed ? "center" : "start"}
@@ -193,9 +204,10 @@ const Admin = () => {
     <Button
       onClick={() => {
         if (isLogout) {
-          handleLogout();
+          handleLogoutWithModeSwitch(); // Sử dụng hàm mới khi đăng xuất
+        } else {
+          handleMenuClick(menuKey);
         }
-        handleMenuClick(menuKey);
       }}
       w="full"
       justifyContent="start"
@@ -268,7 +280,6 @@ const Admin = () => {
               color="gray.800"
               _dark={{ color: "white" }}
               display={isSidebarCollapsed ? "none" : "block"}
-              transition="color 0.5s ease"
             >
               ADMIN
             </Text>
@@ -314,7 +325,7 @@ const Admin = () => {
               <AccordionPanel pb={0} px={isSidebarCollapsed ? 0 : 6}>
                 {renderSubMenuItem("suppliers", "Nhà cung cấp", <UserCheck size={20} />)}
                 {renderSubMenuItem("addPurchaseOrder", "Nhập hàng", <PlusSquare size={20} />)}
-                {renderSubMenuItem("purchaseOrders", "Hóa đơn nhập hàng", <List size={20} />)}
+                {renderSubMenuItem("purchaseOrders", "Phiếu nhập hàng", <List size={20} />)}
               </AccordionPanel>
             </AccordionItem>
             <AccordionItem border="none">
@@ -392,7 +403,7 @@ const Admin = () => {
                 fontWeight="bold"
                 color="gray.800"
                 _dark={{ color: "white" }}
-                transition="color 0.5s ease"
+                display={isSidebarCollapsed ? "none" : "block"}
               >
                 ADMIN
               </Text>
@@ -423,7 +434,7 @@ const Admin = () => {
                 <AccordionPanel pb={0} px={6}>
                   {renderDrawerSubMenuItem("suppliers", "Nhà cung cấp", <UserCheck size={20} />)}
                   {renderDrawerSubMenuItem("addPurchaseOrder", "Nhập hàng", <PlusSquare size={20} />)}
-                  {renderDrawerSubMenuItem("purchaseOrders", "Hóa đơn nhập hàng", <List size={20} />)}
+                  {renderDrawerSubMenuItem("purchaseOrders", "Phiếu nhập hàng", <List size={20} />)}
                 </AccordionPanel>
               </AccordionItem>
               <AccordionItem border="none">
@@ -512,18 +523,6 @@ const Admin = () => {
             </Text>
           </Flex>
           <Flex align="center" gap={4}>
-            <InputGroup maxW="300px">
-              <InputLeftElement pointerEvents="none">
-                <Search size={16} color="gray.500" _dark={{ color: "gray.400" }} />
-              </InputLeftElement>
-              <Input
-                placeholder="Tìm kiếm..."
-                variant="outline"
-                borderColor="gray.300"
-                _dark={{ borderColor: "gray.600" }}
-                _focus={{ borderColor: "primary.500", boxShadow: "0 0 0 1px var(--primary-color)" }}
-              />
-            </InputGroup>
             <IconButton
               icon={<Settings size={20} />}
               aria-label="Settings"

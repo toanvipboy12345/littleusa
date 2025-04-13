@@ -253,7 +253,7 @@ const AddPurchaseOrder = () => {
 
       toast({
         title: "Thêm phiếu nhập hàng thành công",
-        description: "Phiếu nhập hàng đã được tạo với trạng thái PENDING!",
+        description: "Phiếu nhập hàng đã được tạo",
         status: "success",
         duration: 3000,
         isClosable: true,

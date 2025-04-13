@@ -67,8 +67,8 @@ const AddBrand = ({ onAddSuccess }) => {
         onAddSuccess(response.data);
       }
     } catch (error) {
-      const errorMessage =
-        error.response?.data || "Không thể thêm thương hiệu.";
+      // Kiểm tra customMessage từ interceptor
+      const errorMessage = error.customMessage || error.response?.data || "Không thể thêm thương hiệu.";
       toast({
         title: "Lỗi",
         description:
@@ -78,6 +78,7 @@ const AddBrand = ({ onAddSuccess }) => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top-right", // Đặt vị trí thông báo ở góc trên bên phải
       });
     }
   };
@@ -86,9 +87,9 @@ const AddBrand = ({ onAddSuccess }) => {
     <Box
       as="form"
       onSubmit={handleSubmit}
-      maxW={{ base: "100%", md: "600px", lg: "1200px" }} // Giới hạn chiều rộng tối đa trên các kích thước màn hình
-      mx="auto" // Căn giữa form
-      p={{ base: 4, md: 6 }} // Padding thay đổi theo kích thước màn hình
+      maxW={{ base: "100%", md: "600px", lg: "1200px" }}
+      mx="auto"
+      p={{ base: 4, md: 6 }}
       bg="transparent"
       _dark={{ bg: "gray.900" }}
     >
@@ -98,7 +99,7 @@ const AddBrand = ({ onAddSuccess }) => {
           <FormLabel
             color="var(--primary-color)"
             _dark={{ color: "white" }}
-            fontSize={{ base: "sm", md: "md" }} // Điều chỉnh kích thước chữ theo màn hình
+            fontSize={{ base: "sm", md: "md" }}
           >
             Tên thương hiệu
           </FormLabel>
@@ -113,7 +114,7 @@ const AddBrand = ({ onAddSuccess }) => {
             bg="transparent"
             color="black"
             fontSize={{ base: "sm", md: "md" }}
-            size="md" // Kích thước cố định, không quá nhỏ
+            size="md"
             _dark={{
               bg: "gray.800",
               borderColor: "gray.600",
@@ -147,7 +148,7 @@ const AddBrand = ({ onAddSuccess }) => {
             fontSize={{ base: "sm", md: "md" }}
             size="md"
             height="200px"
-            rows={4} // Số dòng mặc định, tránh quá cao hoặc quá thấp
+            rows={4}
             _dark={{
               bg: "gray.800",
               borderColor: "gray.600",
@@ -182,7 +183,7 @@ const AddBrand = ({ onAddSuccess }) => {
             color="black"
             fontSize={{ base: "sm", md: "md" }}
             size="md"
-            p={1} // Padding nhỏ để không quá dày
+            p={1}
             _dark={{
               bg: "gray.800",
               borderColor: "gray.600",
@@ -203,9 +204,9 @@ const AddBrand = ({ onAddSuccess }) => {
           isDisabled={!newBrand.name.trim()}
           bg="var(--primary-color)"
           color="var(--text-color)"
-          size="md" // Kích thước nút trung bình
-          w={{ base: "full", md: "auto" }} // Toàn chiều rộng trên mobile, tự động trên desktop
-          alignSelf={{ base: "stretch", md: "flex-end" }} // Căn phải trên desktop
+          size="md"
+          w={{ base: "full", md: "auto" }}
+          alignSelf={{ base: "stretch", md: "flex-end" }}
           _hover={{ bg: "var(--hover-color)" }}
           _active={{ bg: "var(--primary-color)" }}
           _dark={{

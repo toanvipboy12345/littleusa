@@ -13,13 +13,15 @@ import {
   BreadcrumbLink,
 } from "@chakra-ui/react";
 import axiosInstance from "../../../../Api/axiosInstance";
+import useDocumentTitle from "../../../../hook/useDocumentTitle";
+
 import { Link } from "react-router-dom";
 
 const Blogs = () => {
   const [blogs, setBlogs] = useState([]);
   const toast = useToast();
   const BASE_URL = "http://localhost:8080";
-
+  useDocumentTitle("Bài viết");
   useEffect(() => {
     fetchBlogs();
   }, []);
